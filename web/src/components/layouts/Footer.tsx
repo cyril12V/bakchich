@@ -97,7 +97,7 @@ export function Footer() {
       >
         <div
           style={{
-            maxWidth: "1200px",
+            maxWidth: "1360px",
             margin: "0 auto",
             padding: "2.5rem 1.5rem",
             display: "flex",
@@ -169,7 +169,7 @@ export function Footer() {
       {/* Corps : logo + colonnes */}
       <div
         style={{
-          maxWidth: "1200px",
+          maxWidth: "1360px",
           margin: "0 auto",
           padding: "2.5rem 1.5rem",
           display: "grid",
@@ -272,7 +272,7 @@ export function Footer() {
       >
         <div
           style={{
-            maxWidth: "1200px",
+            maxWidth: "1360px",
             margin: "0 auto",
             padding: "1rem 1.5rem",
             display: "flex",

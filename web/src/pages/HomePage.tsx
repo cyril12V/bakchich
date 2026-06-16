@@ -331,27 +331,6 @@ function HeroCTA() {
           <span aria-hidden="true">🧩</span>
           Installer l'extension VS Code
         </span>
-        {/* Segment gain : s'etire sur toute la hauteur du bouton */}
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            alignSelf: "stretch",
-            padding: "0 1.25rem",
-            fontSize: "0.9375rem",
-            fontWeight: 700,
-            backgroundColor: "rgba(97,160,26,0.9)",
-            color: "#ffffff",
-            borderLeft: "1px solid rgba(255,255,255,0.25)",
-            gap: "0.25rem",
-            whiteSpace: "nowrap",
-          }}
-        >
-          ~42 EUR/mois
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
       </button>
     </a>
   );
