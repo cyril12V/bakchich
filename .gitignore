@@ -1,0 +1,37 @@
+# Secrets — JAMAIS committer
+.env
+*.env
+!*.env.example
+!**/env.production.example
+
+# Base de données SQLite (contient emails, tokens de session, ledger)
+*.db
+*.db-shm
+*.db-wal
+
+# Dépendances et build
+node_modules/
+dist/
+web/dist/
+*.vsix
+
+# Artefacts d'agents
+.claude/agent-memory/
+backend/.claude/
+
+# Archive de prod
+bakchich-prod.tar.gz
+
+# Divers
+.DS_Store
+*.log
+
+# Sécurité renforcée : sauvegardes et variantes de secrets
+*.bak
+.env.*
+!.env.example
+*.old.png
+reviewdb.db*
+.claude/
+
+**/.claude/

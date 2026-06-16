@@ -1,0 +1,13 @@
+# Ne PAS embarquer dans le .vsix (le code reste public sur GitHub)
+src/**
+test/**
+node_modules/**
+**/*.map
+**/*.ts
+esbuild.mjs
+tsconfig.json
+vitest.config.ts
+.vscode/**
+.gitignore
+.claude/**
+**/*.vsix

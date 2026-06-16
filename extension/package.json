@@ -1,0 +1,59 @@
+{
+  "name": "bakchich",
+  "displayName": "Bakchich, sois payé pendant que ça tourne",
+  "description": "Une ligne sponsorisée dans le spinner de Claude Code pendant qu'il réfléchit. Tu touches 50 % des revenus pub. Opt-in, transparent, réversible en un clic.",
+  "version": "0.2.0",
+  "publisher": "bakchich",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "media/icon.png",
+  "repository": { "type": "git", "url": "https://github.com/bakchich/bakchich" },
+  "homepage": "https://bakchich.dev",
+  "bugs": { "url": "https://bakchich.dev" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "keywords": ["claude code", "claude", "spinner", "ads", "revenue", "bakchich", "ai"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "bakchich.signIn", "title": "Bakchich : Se connecter (activer mes gains)" },
+      { "command": "bakchich.signOut", "title": "Bakchich : Se déconnecter" },
+      { "command": "bakchich.menu", "title": "Bakchich : Menu" },
+      { "command": "bakchich.toggle", "title": "Bakchich : Activer / Désactiver" },
+      { "command": "bakchich.restore", "title": "Bakchich : Restaurer Claude Code" },
+      { "command": "bakchich.diagnose", "title": "Bakchich : Diagnostic" },
+      { "command": "bakchich.openDashboard", "title": "Bakchich : Mon tableau de bord" }
+    ],
+    "configuration": {
+      "title": "Bakchich",
+      "properties": {
+        "bakchich.apiUrl": {
+          "type": "string",
+          "default": "https://api.bakchich.dev",
+          "description": "URL de l'API Bakchich. À changer pour http://localhost:3939 en développement local."
+        },
+        "bakchich.viewThresholdSeconds": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Temps de visibilité cumulé (en secondes) qu'une pub doit atteindre avant d'être comptée comme « vue » et créditée."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "test": "vitest run",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  }
+}

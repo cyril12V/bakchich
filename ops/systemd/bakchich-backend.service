@@ -1,0 +1,74 @@
+# =============================================================================
+#  Bakchich — unit systemd du backend Node/Express  (durcie)
+#  -------------------------------------------------------------------------
+#  Chemins réels de ce serveur (le code vit dans /var/www/bakchich) :
+#    code/backend : /var/www/bakchich/backend
+#    .env         : /var/www/bakchich/backend/.env   (chmod 600, bakchich)
+#    DB SQLite    : /var/www/bakchich/backend/bakchich.db (+ WAL/SHM)
+#    user         : bakchich (compte système dédié, sans privilèges)
+#    node         : /usr/local/bin/node  (vérifier : which node)
+#
+#  Installation :
+#    sudo cp ops/systemd/bakchich-backend.service /etc/systemd/system/
+#    sudo systemctl daemon-reload && sudo systemctl enable --now bakchich-backend
+#  Logs : journalctl -u bakchich-backend -f
+# =============================================================================
+[Unit]
+Description=Bakchich backend (API Node/Express - régie pub spinner)
+Documentation=https://bakchich.dev
+After=network.target
+
+[Service]
+Type=simple
+User=bakchich
+Group=bakchich
+
+WorkingDirectory=/var/www/bakchich/backend
+EnvironmentFile=/var/www/bakchich/backend/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/local/bin/node src/server.js
+
+# --- Résilience : redémarrage auto, mais on coupe les boucles de crash --------
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# --- Durcissement (hardening) -------------------------------------------------
+# Aucun nouveau privilège (setuid/sudo) possible.
+NoNewPrivileges=true
+# FS racine en lecture seule ; seul le backend (DB SQLite) est inscriptible.
+ProtectSystem=strict
+ReadWritePaths=/var/www/bakchich/backend
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Familles de sockets : IPv4/IPv6/Unix suffisent à Express (pas de raw sockets).
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Le process n'a besoin d'AUCUNE capability (écoute sur 3939 > 1024).
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Filtre d'appels système : jeu standard "service" (compatible Node/V8 JIT).
+# NB : on NE met PAS MemoryDenyWriteExecute (casserait le JIT V8).
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+UMask=077
+# Garde-fous ressources (anti-emballement).
+LimitNOFILE=8192
+MemoryMax=512M
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target
