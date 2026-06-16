@@ -116,6 +116,8 @@ export interface AuctionResponse {
 export interface LeaderboardEntry {
   brand_name: string;
   brand_icon: string | null;
+  /** Id d'une campagne de cette marque ayant une icône (pour /api/campaigns/:id/icon). */
+  icon_id: string | null;
   spent_cents: number;
   impressions: number;
 }

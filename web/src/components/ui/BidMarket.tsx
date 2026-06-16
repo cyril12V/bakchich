@@ -218,20 +218,39 @@ export function BidMarket({ compact = false, onDataLoaded }: Props) {
                       maxWidth: "280px",
                     }}
                   >
-                    <span
-                      style={{
-                        display: "block",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {item.brand_name && (
-                        <strong style={{ marginRight: "0.375rem" }}>
-                          {item.brand_name}
-                        </strong>
-                      )}
-                      {item.text}
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                      <img
+                        src={`/api/campaigns/${item.id}/icon`}
+                        alt=""
+                        width={24}
+                        height={24}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "5px",
+                          objectFit: "cover",
+                          flexShrink: 0,
+                          backgroundColor: "var(--color-gray-100)",
+                          border: "1px solid var(--color-gray-200)",
+                        }}
+                      />
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          minWidth: 0,
+                        }}
+                      >
+                        {item.brand_name && (
+                          <strong style={{ marginRight: "0.375rem" }}>{item.brand_name}</strong>
+                        )}
+                        {item.text}
+                      </span>
                     </span>
                   </td>
                   <td

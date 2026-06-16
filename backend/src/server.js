@@ -427,6 +427,22 @@ app.get("/api/auction", (_req, res) => {
   res.json({ queue: auctionQueue(), minBidCents: MIN_BID_CENTS });
 });
 
+/** Icône d'une campagne servie comme une VRAIE image (cacheable). On NE met pas
+ *  les data-URL dans les réponses JSON publiques (auction/leaderboard) pour éviter
+ *  des réponses de plusieurs Mo (DoS) : le front référence cette URL via <img>. */
+app.get("/api/campaigns/:id/icon", (req, res) => {
+  const row = db.prepare(`SELECT brand_icon FROM campaigns WHERE id=?`).get(req.params.id);
+  const icon = row?.brand_icon;
+  const m = typeof icon === "string"
+    ? icon.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/)
+    : null;
+  if (!m) return res.status(404).end();
+  const buf = Buffer.from(m[2], "base64");
+  res.set("Content-Type", m[1]);
+  res.set("Cache-Control", "public, max-age=3600");
+  res.send(buf);
+});
+
 /** Leaderboard public des marques (opt-in via show_on_leaderboard). */
 app.get("/api/leaderboard", (_req, res) => {
   res.json({ leaderboard: leaderboard() });

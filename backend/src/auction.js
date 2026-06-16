@@ -58,6 +58,7 @@ export function leaderboard(limit = 20) {
   return db
     .prepare(
       `SELECT brand_name,
+              MAX(CASE WHEN brand_icon IS NOT NULL THEN id END) AS icon_id,
               SUM(impressions * (bid_cents * 1.0 / ?)) AS spent_cents,
               SUM(impressions) AS impressions
        FROM campaigns

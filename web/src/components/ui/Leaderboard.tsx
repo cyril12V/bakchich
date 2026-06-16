@@ -146,16 +146,20 @@ export function Leaderboard() {
                     gap: "0.75rem",
                   }}
                 >
-                  {entry.brand_icon ? (
+                  {entry.icon_id ? (
                     <img
-                      src={entry.brand_icon}
+                      src={`/api/campaigns/${entry.icon_id}/icon`}
                       alt=""
                       aria-hidden="true"
                       width={32}
                       height={32}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
                       style={{
                         borderRadius: "6px",
-                        objectFit: "contain",
+                        objectFit: "cover",
                         border: "1px solid var(--color-gray-200)",
                         flexShrink: 0,
                       }}
