@@ -1,6 +1,6 @@
-# TODO — Bakchich
+# TODO : Bakchich
 
-## Session 2026-06-15 — Branchement Stripe + front + déploiement + durcissement
+## Session 2026-06-15 : Branchement Stripe + front + déploiement + durcissement
 
 Objectif : reprendre le squelette livré et le mener au niveau « prêt à lancer » sur les 4 tracks.
 
@@ -11,8 +11,8 @@ Objectif : reprendre le squelette livré et le mener au niveau « prêt à lance
 - [x] Extension : 6/6 tests vitest verts → puis 9/9 après durcissement
 - [x] Backend : seed + boot + `/api/state` sert la pub gagnante, impression idempotente, kill-switch OK
 
-#### Stripe (backend — fait par l'orchestrateur, chemin critique)
-- [x] `payments.js` : Checkout (annonceurs), Connect Express (onboarding + status), transfers (payouts) — lazy-init, le serveur démarre sans clés Stripe
+#### Stripe (backend : fait par l'orchestrateur, chemin critique)
+- [x] `payments.js` : Checkout (annonceurs), Connect Express (onboarding + status), transfers (payouts) : lazy-init, le serveur démarre sans clés Stripe
 - [x] `POST /api/campaigns` → Checkout si Stripe configuré (`pending_payment`), sinon mode dev (`pending`)
 - [x] Webhook `/webhooks/stripe` (corps brut + signature) → `checkout.session.completed` passe la campagne en modération
 - [x] `POST /api/me/connect/onboard` + `GET /api/me/connect/status`
@@ -36,7 +36,7 @@ Objectif : reprendre le squelette livré et le mener au niveau « prêt à lance
 - [x] Notification first-run opt-in, logo SVG, doc packaging, 3 tests vitest en plus
 - [x] Attribution du clic Option A (`?u=<userId>` injecté côté serveur dans `adLine`)
 
-#### Durcissement (FIX — suite aux 2 revues sécurité/qualité)
+#### Durcissement (FIX : suite aux 2 revues sécurité/qualité)
 - [x] `.gitignore` (protège `.env` + `*.db`)
 - [x] `ADMIN_SECRET` fail-fast en prod + comparaison timing-safe
 - [x] Idempotence webhook Stripe (table `stripe_events`)
@@ -62,10 +62,10 @@ Objectif : reprendre le squelette livré et le mener au niveau « prêt à lance
 
 ---
 
-## Session 2026-06-15 (suite) — Guide manuel + refonte DA complète
+## Session 2026-06-15 (suite) : Guide manuel + refonte DA complète
 
 ### ✅ Fait
-- [x] `docs/SETUP-MANUEL.md` — guide pas-à-pas de TOUT ce qui est manuel (Stripe test→live, Google OAuth, domaine/DNS, Marketplace, VPS, juridique) + tableau des variables `.env`
+- [x] `docs/SETUP-MANUEL.md` : guide pas-à-pas de TOUT ce qui est manuel (Stripe test→live, Google OAuth, domaine/DNS, Marketplace, VPS, juridique) + tableau des variables `.env`
 - [x] Backend : champs marque `brand_name` / `brand_icon` (data URL ≤ 64 Ko validée) / `show_on_leaderboard`
 - [x] Backend : `GET /api/leaderboard` (marques opt-in, classées par dépense) + `created_at`/`brand_name` dans `/api/auction`
 - [x] Backend : ligne de pub passée à **3–60 caractères** (`text_length_3_60`)
@@ -80,17 +80,17 @@ Objectif : reprendre le squelette livré et le mener au niveau « prêt à lance
 - [x] Vérifs API : ligne 3-60, brand+leaderboard, rejet icône invalide, leaderboard, auction enrichi
 - [x] Tests : backend 7/7, extension 9/9 toujours verts
 
-### ⛔ Reste (manuel — voir docs/SETUP-MANUEL.md)
+### ⛔ Reste (manuel : voir docs/SETUP-MANUEL.md)
 Identique à la session précédente : credentials Google + Stripe, VPS/DNS/certbot, export PNG icône + publication `.vsix`, test cross-OS. La landing et toutes les pages sont maintenant à la charte définitive.
 
 ---
 
-## Session 2026-06-15 (suite 2) — Passage React + prod + identifiants + polish
+## Session 2026-06-15 (suite 2) : Passage React + prod + identifiants + polish
 
 ### ✅ Fait
 - [x] **Front migré en React (Vite + TypeScript)** dans `web/` : Home, Annonceurs, Me, FAQ, 4 pages légales, composants (Header/Footer, CampaignForm, BidMarket, Leaderboard, LiveCounter, SpinnerDemo, Accordion…). Build vert, tsc 0 erreur. Vérifié e2e au navigateur (Home, /me authentifié avec données réelles).
 - [x] **DA conservée** : noir & blanc, Inter + Plus Jakarta Sans, logo `/logo.png` + favicon. Routing SPA (react-router), API en chemins relatifs (proxy Vite en dev, nginx en prod).
-- [x] **Tirets cadratins « — » supprimés** de l'UI (React + extension + seed). CTA « Se connecter » → **« Activer mes gains · via Google »** ; logout → « Déconnexion ».
+- [x] **Tirets cadratins « : » supprimés** de l'UI (React + extension + seed). CTA « Se connecter » → **« Activer mes gains · via Google »** ; logout → « Déconnexion ».
 - [x] **~120 corrections d'accents** sur 10 fichiers React (français impeccable) via passe dédiée.
 - [x] **Identifiants Google** intégrés dans `backend/.env` (gitignoré) + `ADMIN_SECRET` généré.
 - [x] **Vraies mentions légales** (SHALABY Cyril, micro-entreprise, SIREN/SIRET/TVA, Hostinger) dans `legal/mentions-legales.md` + page React.

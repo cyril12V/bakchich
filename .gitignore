@@ -1,4 +1,4 @@
-# Secrets — JAMAIS committer
+# Secrets : JAMAIS committer
 .env
 *.env
 !*.env.example

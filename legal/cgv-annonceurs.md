@@ -1,4 +1,4 @@
-# Conditions Générales de Vente — Annonceurs
+# Conditions Générales de Vente : Annonceurs
 *Modèle à faire relire par un juriste.*
 
 1. **Objet** : achat de blocs publicitaires (1 bloc = 1 000 impressions de 5 s dans le spinner). Clic facturé 50× le prix d'une impression, décompté du budget.

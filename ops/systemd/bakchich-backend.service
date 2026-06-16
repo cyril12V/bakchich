@@ -1,5 +1,5 @@
 # =============================================================================
-#  Bakchich — unit systemd du backend Node/Express  (durcie)
+#  Bakchich : unit systemd du backend Node/Express  (durcie)
 #  -------------------------------------------------------------------------
 #  Chemins réels de ce serveur (le code vit dans /var/www/bakchich) :
 #    code/backend : /var/www/bakchich/backend

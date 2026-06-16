@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Bakchich — installation de l'appli (1re fois), APRÈS provision.sh + upload
+#  Bakchich : installation de l'appli (1re fois), APRÈS provision.sh + upload
 #  -------------------------------------------------------------------------
 #  Prérequis : code présent dans /opt/bakchich, et /opt/bakchich/backend/.env rempli.
 #  À lancer une fois, en root :
@@ -54,7 +54,7 @@ cat <<'NEXT'
 
 ✅ Appli installée.
    Le backend tourne en HTTP (port interne 3939, proxifié par nginx en :80).
-   ÉTAPE SUIVANTE — activer le HTTPS (obligatoire en .dev) :
+   ÉTAPE SUIVANTE : activer le HTTPS (obligatoire en .dev) :
      sudo certbot --nginx -d bakchich.dev -d www.bakchich.dev -d api.bakchich.dev
    Puis vérifier : curl -fsS https://api.bakchich.dev/health
 NEXT

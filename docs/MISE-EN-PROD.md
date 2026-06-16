@@ -1,4 +1,4 @@
-# 🚀 Mise en prod — expliqué simplement
+# 🚀 Mise en prod : expliqué simplement
 
 ## Le modèle mental : 2 choses, 2 destinations
 
@@ -18,13 +18,13 @@ Beaucoup de confusion vient de là. Bakchich, ce sont **deux produits séparés*
         api.bakchich.dev
 ```
 
-**Règle simple :** le VPS héberge l'API + le site web. L'extension, elle, n'est jamais sur le VPS — elle est publiée sur le Marketplace, et elle *parle* à ton VPS via `https://api.bakchich.dev`.
+**Règle simple :** le VPS héberge l'API + le site web. L'extension, elle, n'est jamais sur le VPS : elle est publiée sur le Marketplace, et elle *parle* à ton VPS via `https://api.bakchich.dev`.
 
 ---
 
-## PARTIE A — Ce que tu uploades sur le VPS
+## PARTIE A : Ce que tu uploades sur le VPS
 
-### Option 1 — Git (recommandé, et de toute façon le code doit être public)
+### Option 1 : Git (recommandé, et de toute façon le code doit être public)
 Sur ta machine, mets le repo sur GitHub une fois :
 ```bash
 cd C:/Users/cyril/Desktop/bakchich
@@ -36,7 +36,7 @@ Puis sur le VPS, tu cloneras dedans `/opt/bakchich`. Les mises à jour = `git pu
 
 > Le `.gitignore` exclut déjà `.env`, les `*.db` et `node_modules` → aucun secret ne part sur GitHub.
 
-### Option 2 — Archive (sans git, le plus simple pour démarrer)
+### Option 2 : Archive (sans git, le plus simple pour démarrer)
 J'ai déjà fabriqué l'archive : **`C:/Users/cyril/Desktop/bakchich-prod.tar.gz`** (1,8 Mo).
 Pour la régénérer plus tard : `bash ops/package-prod.sh`.
 
@@ -46,38 +46,38 @@ scp C:/Users/cyril/Desktop/bakchich-prod.tar.gz  root@IP_DU_VPS:/tmp/
 ```
 
 **Ce que l'archive contient** (et donc ce qui tourne sur le VPS) :
-- `backend/` — l'API Node + SQLite
-- `web/` — le site en **React (Vite + TypeScript)**, sources. Il est **buildé sur le VPS** (`npm run build` → `web/dist`, fait automatiquement par `setup-app.sh` et `deploy.sh`), puis publié dans `/var/www/bakchich`.
-- `legal/` — les textes légaux sources (le contenu est aussi intégré dans les pages React)
-- `ops/` — les scripts d'install/déploiement/backup + confs nginx/systemd
+- `backend/` : l'API Node + SQLite
+- `web/` : le site en **React (Vite + TypeScript)**, sources. Il est **buildé sur le VPS** (`npm run build` → `web/dist`, fait automatiquement par `setup-app.sh` et `deploy.sh`), puis publié dans `/var/www/bakchich`.
+- `legal/` : les textes légaux sources (le contenu est aussi intégré dans les pages React)
+- `ops/` : les scripts d'install/déploiement/backup + confs nginx/systemd
 - `docs/`, `logo.png`
 
-**Ce qui n'y est PAS** (volontairement) : `.env` (tes secrets — tu le crées sur le VPS), la base `*.db` (créée au 1er lancement), `node_modules` (réinstallé sur le VPS), `web/dist` (rebuildé sur le VPS), le `.vsix` (lui part au Marketplace).
+**Ce qui n'y est PAS** (volontairement) : `.env` (tes secrets : tu le crées sur le VPS), la base `*.db` (créée au 1er lancement), `node_modules` (réinstallé sur le VPS), `web/dist` (rebuildé sur le VPS), le `.vsix` (lui part au Marketplace).
 
 > Le build React tourne sur le VPS (Node 20 est installé par `provision.sh`). Tu n'as donc rien à builder côté front avant d'uploader.
 
 ---
 
-## PARTIE B — Installer sur le VPS (étapes, 3 scripts)
+## PARTIE B : Installer sur le VPS (étapes, 3 scripts)
 
 > Prérequis : un VPS Ubuntu/Debian + ses DNS pointés (cf. `docs/SETUP-MANUEL.md` §1).
 
 ```bash
-# 1. Bootstrap du serveur (Node, nginx, certbot, pare-feu, utilisateur) — UNE fois
+# 1. Bootstrap du serveur (Node, nginx, certbot, pare-feu, utilisateur) : UNE fois
 sudo bash provision.sh        # (extrais d'abord ops/ ou clone le repo pour l'avoir)
 
 # 2. Mettre le code dans /opt/bakchich
-#   — option git :
+#   : option git :
 sudo git clone https://github.com/TON-COMPTE/bakchich.git /opt/bakchich
-#   — option archive :
+#   : option archive :
 sudo mkdir -p /opt/bakchich && sudo tar -xzf /tmp/bakchich-prod.tar.gz -C /opt/bakchich
 
-# 3. Créer le fichier secret .env (et le remplir — cf. SETUP-MANUEL.md)
+# 3. Créer le fichier secret .env (et le remplir : cf. SETUP-MANUEL.md)
 sudo cp /opt/bakchich/ops/env.production.example /opt/bakchich/backend/.env
 sudo nano /opt/bakchich/backend/.env        # remplis Google, Stripe, ADMIN_SECRET, SITE_URL...
 sudo chmod 600 /opt/bakchich/backend/.env
 
-# 4. Installer l'appli (nginx + systemd + deps + front + cron backup) — UNE fois
+# 4. Installer l'appli (nginx + systemd + deps + front + cron backup) : UNE fois
 sudo bash /opt/bakchich/ops/setup-app.sh
 
 # 5. Activer le HTTPS (obligatoire en .dev)
@@ -91,7 +91,7 @@ curl -fsS https://api.bakchich.dev/health      # → {"ok":true}
 
 ---
 
-## PARTIE C — L'extension : où la mettre
+## PARTIE C : L'extension : où la mettre
 
 L'extension **ne va pas sur le VPS**. Le fichier est déjà construit :
 **`C:/Users/cyril/Desktop/bakchich/extension/bakchich-0.1.0.vsix`**

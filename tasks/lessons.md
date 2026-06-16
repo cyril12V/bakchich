@@ -1,4 +1,4 @@
-# Leçons — Bakchich
+# Leçons : Bakchich
 
 ## 2026-06-15
 
@@ -8,7 +8,7 @@
 **Règle :** toute écriture d'argent passe par une transaction qui (re)lit le solde à l'intérieur. Idempotency key Stripe sur les transfers pour qu'un rejeu ne double jamais un virement.
 
 ### `SITE_URL` ≠ `BASE_URL` : ne jamais faire pointer un fallback sur le mauvais domaine
-**Contexte :** `SITE_URL` retombait sur `BASE_URL` (= `api.bakchich.dev`). Les `success_url` Stripe et le retour de login web auraient renvoyé vers le domaine API (404), cassant paiement + connexion en prod — et exposant le token sur le mauvais domaine.
+**Contexte :** `SITE_URL` retombait sur `BASE_URL` (= `api.bakchich.dev`). Les `success_url` Stripe et le retour de login web auraient renvoyé vers le domaine API (404), cassant paiement + connexion en prod : et exposant le token sur le mauvais domaine.
 **Leçon :** un fallback silencieux entre deux variables d'URL est un piège. Documenter la variable comme **obligatoire** dans `.env.example` + runbook + checklist go-live.
 
 ### Architecture same-origin pour éviter tout CORS

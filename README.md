@@ -1,12 +1,12 @@
-# 🪙 Bakchich — Sois payé pendant que ça tourne
+# 🪙 Bakchich : Sois payé pendant que ça tourne
 
 Régie publicitaire du spinner de Claude Code, version française.
 Une ligne sponsorisée pendant que l'IA réfléchit → 50 % des revenus pour le dev, en €, dès le jour 1.
 
 ## Structure
 ```
-extension/   Extension VS Code (TypeScript) — injection spinner, tracking, solde, kill-switch
-backend/     API Node/Express + SQLite — enchères, ledger, anti-fraude, OAuth, admin
+extension/   Extension VS Code (TypeScript) : injection spinner, tracking, solde, kill-switch
+backend/     API Node/Express + SQLite : enchères, ledger, anti-fraude, OAuth, admin
 landing/     Landing page (HTML autonome, en français)
 legal/       RGPD, CGU, CGV annonceurs, mentions légales (modèles à faire relire)
 docs/        Plan de lancement + intégration Stripe

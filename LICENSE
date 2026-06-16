@@ -1,0 +1,33 @@
+Bakchich : Licence "source-available" (propriétaire)
+Copyright (c) 2026 Bakchich (SIRET 895 332 070 00021). Tous droits réservés.
+
+POURQUOI CE CODE EST PUBLIC
+Ce code source est publié publiquement dans un seul but : la TRANSPARENCE et la
+CONFIANCE. Bakchich manipule les gains de développeurs et des paiements ; chacun
+doit pouvoir lire et auditer exactement ce qui tourne (notamment l'extension qui
+s'exécute sur ta machine, et ce qui est envoyé au serveur).
+
+CE QUE TU PEUX FAIRE
+- Lire le code.
+- L'auditer, l'analyser, le citer à des fins de revue de sécurité ou d'étude.
+
+CE QUE TU N'AS PAS LE DROIT DE FAIRE (sans autorisation écrite préalable)
+- Utiliser, exécuter ou déployer ce code (ou une partie) pour un autre service.
+- Copier, modifier, fusionner, publier, distribuer ou sous-licencier le code.
+- En faire une oeuvre dérivée, un fork exploité, ou un produit concurrent.
+- En faire un usage commercial, de quelque nature que ce soit.
+
+PROPRIÉTÉ
+La marque "Bakchich", le logo, le nom de domaine, les contenus et l'ensemble du
+code restent la propriété exclusive de leur éditeur. Aucune licence d'usage,
+expresse ou implicite, n'est accordée par la simple mise à disposition du code.
+
+GARANTIE
+Le code est fourni "EN L'ÉTAT", sans aucune garantie d'aucune sorte. L'éditeur ne
+saurait être tenu responsable d'un quelconque dommage lié à sa consultation.
+
+DIVERS
+Bakchich est un projet indépendant, NON affilié à Anthropic. "Claude Code" est
+une marque de ses propriétaires respectifs, citée à titre purement descriptif.
+
+Pour toute demande de licence ou d'autorisation : privacy@bakchich.dev

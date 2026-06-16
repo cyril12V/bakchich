@@ -89,10 +89,10 @@ describe("injection / restauration du spinner", () => {
     fs.writeFileSync(settingsPath(), JSON.stringify({ theme: "dark", spinnerVerbs: original }));
     const { injectAd, restore } = await freshAdapter();
 
-    injectAd("Scaleway — le cloud européen ↗ bakch.li/c/abc");
+    injectAd("Scaleway : le cloud européen ↗ bakch.li/c/abc");
     // Vérification intermédiaire : la pub est bien en place.
     const mid = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
-    expect(mid.spinnerVerbs).toEqual(["Scaleway — le cloud européen ↗ bakch.li/c/abc"]);
+    expect(mid.spinnerVerbs).toEqual(["Scaleway : le cloud européen ↗ bakch.li/c/abc"]);
 
     restore();
     const after = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));

@@ -1,5 +1,5 @@
 /**
- * Stripe — encaissement annonceurs (Checkout) + reversements devs (Connect Express).
+ * Stripe : encaissement annonceurs (Checkout) + reversements devs (Connect Express).
  *
  * Tout est en lazy-init : le serveur DOIT pouvoir démarrer SANS clés Stripe
  * (dev local, seed, tests). Les fonctions qui en ont besoin renvoient un état
@@ -11,7 +11,7 @@
  *     puis passe en 'pending' (file de modération manuelle).
  *   · Payout : solde retirable ≥ 10 €. Règle d'or anti-fraude : tout 1er retrait
  *     et tout retrait portant sur un solde > 100 € part en review manuelle
- *     (pending_review) — aucun virement automatique dans ces cas.
+ *     (pending_review) : aucun virement automatique dans ces cas.
  */
 import Stripe from "stripe";
 
@@ -60,6 +60,36 @@ export async function createCheckoutSession({ campaign, blocks, bidCents, advert
     // TVA FR auto : activer Stripe Tax dans le dashboard puis décommenter.
     // automatic_tax: { enabled: true },
     metadata: { campaignId: campaign.id },
+    success_url: `${baseSiteUrl}/annonceurs/espace?paid=1&campaign=${campaign.id}`,
+    cancel_url: `${baseSiteUrl}/annonceurs/espace?canceled=1`,
+  });
+  return { url: session.url, sessionId: session.id };
+}
+
+/**
+ * Checkout pour la DIFFÉRENCE lors d'une modification de campagne (hausse de bid/blocs).
+ * Le nouveau bid/blocs est passé en metadata et appliqué au webhook après encaissement.
+ */
+export async function createEditCheckoutSession({ campaign, diffCents, newBid, newBlocks, advertiserEmail, baseSiteUrl }) {
+  const stripe = getStripe();
+  if (!stripe) throw new Error("stripe_not_configured");
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    customer_email: advertiserEmail,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "eur",
+          unit_amount: diffCents,
+          product_data: {
+            name: "Bakchich : ajustement de campagne",
+            description: `Campagne « ${campaign.text} » (nouveau tarif / volume)`,
+          },
+        },
+      },
+    ],
+    metadata: { campaignId: campaign.id, editBid: String(newBid), editBlocks: String(newBlocks) },
     success_url: `${baseSiteUrl}/annonceurs/espace?paid=1&campaign=${campaign.id}`,
     cancel_url: `${baseSiteUrl}/annonceurs/espace?canceled=1`,
   });

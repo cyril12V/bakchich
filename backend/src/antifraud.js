@@ -1,10 +1,10 @@
 /**
- * Anti-fraude v1 — règles simples mais qui éliminent 95 % de la triche :
+ * Anti-fraude v1 : règles simples mais qui éliminent 95 % de la triche :
  *
  * 1. INTERVALLE : minimum 4,5 s entre deux impressions d'un même utilisateur
  *    (une impression = 5 s de visibilité, donc plus vite = physiquement impossible).
  * 2. PLAFOND JOUR : max 2 000 impressions/jour/utilisateur
- *    (≈ 2 h 45 de spinner visible — au-delà, c'est un bot).
+ *    (≈ 2 h 45 de spinner visible : au-delà, c'est un bot).
  * 3. PLAFOND CLIC : max 5 clics/jour/utilisateur sur une même campagne.
  * 4. IDEMPOTENCE : event_id en clé primaire → un événement rejoué = ignoré.
  * 5. BAN : compte gelé = plus aucun crédit (review manuelle avant payout).
@@ -22,17 +22,51 @@ const MIN_TICK_INTERVAL_MS = 4500;
 // La protection anti-fraude repose sur la cadence ci-dessus + la review manuelle
 // des payouts (1er retrait et gros montants) + le bannissement de compte.
 
+// Au-delà de ce nombre de comptes DISTINCTS gagnant depuis une même IP le même jour,
+// on considère que c'est une ferme : les comptes marginaux ne sont plus crédités (les
+// premiers, eux, continuent normalement → on ne plafonne pas les gains légitimes).
+const MAX_ACCOUNTS_PER_IP_PER_DAY = 20;
+
+function todayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 /** @returns {string|null} null si OK, sinon la raison du refus */
-export function checkImpression(userId) {
+export function checkImpression(userId, ip) {
   const last = db
     .prepare(`SELECT MAX(created_at) t FROM events WHERE user_id=? AND type='impression'`)
     .get(userId).t;
   if (last && now() - last < MIN_TICK_INTERVAL_MS) return "too_fast";
-  return null; // pas de plafond journalier
+
+  // Anti multi-comptes : si N autres comptes gagnent déjà depuis cette IP aujourd'hui,
+  // on refuse ce compte supplémentaire (les premiers ne sont pas impactés).
+  if (ip) {
+    const day = todayStart();
+    const others = db
+      .prepare(`SELECT COUNT(*) c FROM ip_accounts WHERE ip=? AND day=? AND user_id != ?`)
+      .get(ip, day, userId).c;
+    if (others >= MAX_ACCOUNTS_PER_IP_PER_DAY) return "ip_farm";
+    db.prepare(`INSERT OR IGNORE INTO ip_accounts (ip, user_id, day) VALUES (?,?,?)`).run(ip, userId, day);
+  }
+  return null; // pas de plafond de gains (impressions illimitées)
 }
 
-export function checkClick(_userId, _campaignId) {
-  return null; // pas de plafond de clics
+// Plafond anti-fraude sur les CLICS uniquement (le clic vaut 50x une impression,
+// donc trivialement abusable). Ce n'est PAS un plafond sur les gains d'impressions
+// (qui restent illimités) : juste une garde contre le farm du multiplicateur x50.
+const MAX_CLICKS_PER_CAMPAIGN_PER_DAY = 10;
+
+export function checkClick(userId, campaignId) {
+  const count = db
+    .prepare(
+      `SELECT COUNT(*) c FROM events
+       WHERE user_id=? AND campaign_id=? AND type='click' AND created_at>=?`
+    )
+    .get(userId, campaignId, todayStart()).c;
+  if (count >= MAX_CLICKS_PER_CAMPAIGN_PER_DAY) return "click_cap";
+  return null;
 }
 
 /** Rate-limit IP ultra simple en mémoire (mettre un vrai limiteur derrière un proxy en prod). */

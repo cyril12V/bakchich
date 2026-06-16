@@ -606,7 +606,7 @@ export function HomePage() {
                 marginBottom: "1.25rem",
               }}
             >
-              Sois payé pendant<br />que ça tourne.
+              Sois payé pendant<br />que Claude tourne.
             </h1>
 
             <p
@@ -616,15 +616,17 @@ export function HomePage() {
                 lineHeight: 1.6,
                 marginBottom: "2rem",
                 fontFamily: "var(--font-body)",
-                maxWidth: "400px",
+                maxWidth: "420px",
               }}
             >
-              Tu codes avec Claude Code ? Sa ligne d'attente devient une pub,
-              et tu touches{" "}
+              Quand Claude Code réfléchit, son petit texte d'attente affiche une
+              pub. Des annonceurs paient pour cette ligne, et tu en touches{" "}
               <strong style={{ color: "var(--color-black)", fontWeight: 700 }}>
-                50 % des revenus
+                50 % en euros
               </strong>
-              . En euros, automatiquement.
+              . Tu ne fais rien de plus : tu laisses Claude tourner, ton solde
+              monte tout seul. C'est gratuit, et ça ne change rien à ta façon de
+              coder.
             </p>
 
             {/* CTA glassmorphism */}

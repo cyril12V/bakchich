@@ -291,7 +291,7 @@ function LoginScreen({ error }: { error: boolean }) {
 }
 
 /* -------- Carte campagne -------- */
-function CampaignCard({ campaign }: { campaign: Campaign }) {
+function CampaignCard({ campaign, onEdit }: { campaign: Campaign; onEdit: () => void }) {
   const date = new Date(campaign.created_at).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "2-digit",
@@ -424,16 +424,31 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
         ))}
       </div>
 
-      {/* Pied : date */}
-      <p
-        style={{
-          fontSize: "0.8125rem",
-          color: "var(--color-gray-400)",
-          fontFamily: "var(--font-body)",
-        }}
-      >
-        Créée le {date}
-      </p>
+      {/* Pied : date + bouton modifier */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-gray-400)", fontFamily: "var(--font-body)" }}>
+          Créée le {date}
+        </p>
+        <button
+          onClick={onEdit}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.375rem",
+            padding: "0.4rem 0.9rem",
+            backgroundColor: "transparent",
+            color: "var(--color-black)",
+            border: "1px solid var(--color-gray-200)",
+            borderRadius: "var(--radius-md)",
+            cursor: "pointer",
+            fontFamily: "var(--font-body)",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+          }}
+        >
+          ✎ Modifier
+        </button>
+      </div>
 
       <style>{`
         @media (max-width: 480px) {
@@ -562,6 +577,7 @@ export function AnnonceursEspacePage() {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Campaign | null>(null);
   const [auction, setAuction] = useState<AuctionResponse | null>(null);
   const [paidBanner, setPaidBanner] = useState(false);
   // Rôle courant (déclenche un re-render quand on bascule de contexte).
@@ -764,6 +780,47 @@ export function AnnonceursEspacePage() {
           </div>
         )}
 
+        {/* Formulaire d'ÉDITION d'une campagne existante */}
+        {editing && (
+          <div style={{ marginBottom: "2rem" }}>
+            <Card>
+              <div style={{ padding: "1.75rem 1.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1.25rem" }}>
+                  <h2
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "1.25rem",
+                      fontWeight: 800,
+                      color: "var(--color-black)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Modifier « {editing.brand_name ?? editing.text} »
+                  </h2>
+                  <button
+                    onClick={() => setEditing(null)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-gray-500)", fontFamily: "var(--font-body)", fontSize: "0.875rem", fontWeight: 600 }}
+                  >
+                    ✕ Annuler
+                  </button>
+                </div>
+                <p style={{ fontSize: "0.875rem", color: "var(--color-gray-500)", fontFamily: "var(--font-body)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
+                  Si tu augmentes le tarif ou le volume, tu paieras seulement la différence.
+                </p>
+                <CampaignForm
+                  auctionData={auction}
+                  defaultEmail={profile?.email}
+                  editCampaignData={editing}
+                  onDone={() => {
+                    setEditing(null);
+                    void loadData();
+                  }}
+                />
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Formulaire de création INLINE (dans l'espace, plus de redirection) */}
         {showForm && (
           <div style={{ marginBottom: "2rem" }}>
@@ -906,7 +963,15 @@ export function AnnonceursEspacePage() {
               /* Liste des campagnes */
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {campaigns.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
+                  <CampaignCard
+                    key={campaign.id}
+                    campaign={campaign}
+                    onEdit={() => {
+                      setEditing(campaign);
+                      setShowForm(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
                 ))}
               </div>
             )}

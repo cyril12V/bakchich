@@ -20,10 +20,10 @@ export function clearToken(): void {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Rôle (contexte) — séparation dev / annonceur côté web.                    */
+/*  Rôle (contexte) : séparation dev / annonceur côté web.                    */
 /*  Un même compte Google peut être les deux, mais l'interface n'affiche      */
 /*  qu'UN seul univers à la fois : celui par lequel on s'est connecté.        */
-/*  100 % côté client (localStorage) — n'impacte ni le backend ni le login    */
+/*  100 % côté client (localStorage) : n'impacte ni le backend ni le login    */
 /*  de l'extension VS Code (qui a son propre stockage).                       */
 /* -------------------------------------------------------------------------- */
 export type Role = "dev" | "advertiser";
@@ -245,6 +245,27 @@ export async function createCampaign(
   return data as CampaignResponse;
 }
 
+/** Modifier une campagne existante. En cas de hausse de bid/blocs, renvoie un
+ *  checkoutUrl pour payer la différence ; sinon applique directement. */
+export async function editCampaign(
+  id: string,
+  payload: Partial<CampaignPayload>
+): Promise<CampaignResponse> {
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`/api/campaigns/${encodeURIComponent(id)}/edit`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const data = (await res.json()) as CampaignResponse | ApiError;
+  if (!res.ok) {
+    throw new ApiErrorClass((data as ApiError).error, res.status);
+  }
+  return data as CampaignResponse;
+}
+
 export async function fetchBalance(): Promise<BalanceResponse> {
   const res = await authFetch("/api/me/balance");
   return res.json() as Promise<BalanceResponse>;
@@ -330,7 +351,7 @@ export function apiErrorMessage(code: string): string {
     bad_email: "Adresse email invalide.",
     brand_name_required: "Le nom de marque est obligatoire.",
     brand_icon_required: "L'icône de marque est obligatoire.",
-    bad_brand_icon: "L'icône doit etre PNG, JPG ou WebP et faire moins de 64 Ko.",
+    bad_brand_icon: "L'icône doit etre PNG, JPG ou WebP et faire moins de 512 Ko.",
     bad_request: "Requête invalide. Vérifiez tous les champs.",
     below_min: "Solde insuffisant pour un retrait.",
     connect_incomplete: "Configurez d'abord vos virements Stripe.",

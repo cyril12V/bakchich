@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Bakchich — sauvegarde SQLite SURE (WAL-safe) + rotation
+#  Bakchich : sauvegarde SQLite SURE (WAL-safe) + rotation
 #  -------------------------------------------------------------------------
 #  Pourquoi pas un simple `cp` ?
 #    La base tourne en mode WAL : un cp pendant une ecriture peut copier une
@@ -54,19 +54,19 @@ find "${BACKUP_DIR}" -name 'bakchich-*.db.gz' -type f -mtime "+${RETENTION_DAYS}
 # IMPORTANT : une sauvegarde sur le meme serveur ne protege pas d'une perte
 # totale du VPS. Decommente et adapte UNE des options ci-dessous.
 #
-# Option A — rsync vers un autre serveur (cle SSH sans passphrase recommandee) :
+# Option A : rsync vers un autre serveur (cle SSH sans passphrase recommandee) :
 #   rsync -az --delete "${BACKUP_DIR}/" backup@mon-autre-serveur:/backups/bakchich/
 #
-# Option B — scp de la derniere sauvegarde :
+# Option B : scp de la derniere sauvegarde :
 #   scp "${DEST}.gz" backup@mon-autre-serveur:/backups/bakchich/
 #
-# Option C — synchro vers un bucket objet (S3 / Backblaze B2 / Scaleway) :
+# Option C : synchro vers un bucket objet (S3 / Backblaze B2 / Scaleway) :
 #   rclone copy "${BACKUP_DIR}/" remote-bakchich:bucket-backups/ --max-age 7d
 
 echo "==> Sauvegarde terminee."
 
 # =============================================================================
-#  CRON — editer avec :  sudo crontab -u bakchich -e
+#  CRON : editer avec :  sudo crontab -u bakchich -e
 #  Sauvegarde toutes les 6 heures (00:00, 06:00, 12:00, 18:00) :
 #
 #    0 */6 * * * /opt/bakchich/ops/backup-db.sh >> /var/log/bakchich-backup.log 2>&1

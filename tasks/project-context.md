@@ -1,4 +1,4 @@
-# Contexte projet — Bakchich
+# Contexte projet : Bakchich
 
 > Établi à partir du cahier des charges (1re session, 2026-06-15).
 
@@ -10,13 +10,13 @@
 - **Déploiement** : VPS Ubuntu/Debian, domaine `bakchich.dev` (`.dev` ⇒ HTTPS obligatoire), nginx + certbot + systemd.
 - **Priorités** : transparence/confiance, sécurité (ne JAMAIS lire code/prompts), simplicité (code public lisible en 5 min), time-to-launch.
 
-## Stack (imposée — ne pas réinventer)
+## Stack (imposée : ne pas réinventer)
 - **Extension** : TypeScript, bundle esbuild, tests vitest.
 - **Backend** : Node 20+, Express, better-sqlite3 (SQLite au lancement ; Postgres plus tard si volume).
 - **Paiement** : Stripe Checkout (annonceurs) + Stripe Connect Express (payouts devs).
 - **Front** : HTML léger + fetch (pas de SPA lourde).
 
-## Règles économiques (NON négociables — déjà codées dans auction.js)
+## Règles économiques (NON négociables : déjà codées dans auction.js)
 - 1 bloc = **1 000 impressions** de 5 s
 - 1 clic facturé **50×** une impression (CLICK_MULTIPLIER=50)
 - part du dev = **50 %** (DEV_SHARE=0.5)
@@ -37,9 +37,9 @@
 | Déploiement VPS (nginx/SSL/systemd) | 🔴 à faire |
 
 ## Garde-fous (rappel permanent)
-- L'extension ne touche QUE `spinnerVerbs` de `~/.claude/settings.json` — jamais code/prompts/fichiers.
+- L'extension ne touche QUE `spinnerVerbs` de `~/.claude/settings.json` : jamais code/prompts/fichiers.
 - Écriture atomique + backup + restore exact. Les 6 tests de `claudeCli.test.ts` doivent rester verts.
-- Données envoyées par l'extension : `eventId, type, campaignId, timestamp, token` — rien d'autre.
+- Données envoyées par l'extension : `eventId, type, campaignId, timestamp, token` : rien d'autre.
 - Kill-switch testé AVANT lancement (couper tout < 60 s, restaurer partout).
 - Disclaimer partout : « Projet indépendant, non affilié à Anthropic. »
 - Modération manuelle de chaque créa avant diffusion.

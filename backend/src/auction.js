@@ -53,19 +53,21 @@ export function auctionQueue() {
 
 /** Leaderboard public des marques : total dépensé = impressions servies × prix d'impression. */
 export function leaderboard(limit = 20) {
+  // On NE retourne PAS brand_icon (data URL jusqu'à ~512 Ko) : route publique sans
+  // auth, ça gonflerait la réponse à plusieurs Mo et ouvrirait un DoS applicatif.
   return db
     .prepare(
-      `SELECT brand_name, brand_icon,
+      `SELECT brand_name,
               SUM(impressions * (bid_cents * 1.0 / ?)) AS spent_cents,
               SUM(impressions) AS impressions
        FROM campaigns
        WHERE show_on_leaderboard = 1 AND brand_name IS NOT NULL AND impressions > 0
-       GROUP BY brand_name, brand_icon
+       GROUP BY brand_name
        ORDER BY spent_cents DESC
        LIMIT ?`
     )
     .all(IMPRESSIONS_PER_BLOCK, limit)
-    .map((r) => ({ ...r, spent_cents: Math.round(r.spent_cents) }));
+    .map((r) => ({ ...r, brand_icon: null, spent_cents: Math.round(r.spent_cents) }));
 }
 
 /** Enregistre une impression : incrémente la campagne + crédite le dev. */

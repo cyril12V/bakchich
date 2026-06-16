@@ -1,4 +1,4 @@
-# Conditions Générales d'Utilisation — Bakchich
+# Conditions Générales d'Utilisation : Bakchich
 *Modèle à faire relire par un juriste avant publication.*
 
 ## 1. Le service

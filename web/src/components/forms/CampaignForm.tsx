@@ -10,19 +10,25 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   createCampaign,
+  editCampaign,
   formatEur,
   parseEurInput,
   apiErrorMessage,
   ApiErrorClass,
   type AuctionResponse,
+  type Campaign,
 } from "@/lib/api";
 
 interface Props {
   auctionData: AuctionResponse | null;
   /** Contenu optionnel ajoute après le message de succes (ex. lien vers l'espace annonceur) */
   successSuffix?: ReactNode;
-  /** Email pré-rempli (annonceur connecté) — évite de re-saisir son adresse. */
+  /** Email pré-rempli (annonceur connecté) : évite de re-saisir son adresse. */
   defaultEmail?: string;
+  /** Si fourni : mode ÉDITION de cette campagne (au lieu de création). */
+  editCampaignData?: Campaign;
+  /** Appelé après une modification appliquée sans paiement (pour rafraîchir/fermer). */
+  onDone?: () => void;
 }
 
 interface FormState {
@@ -88,8 +94,20 @@ const errorStyle: React.CSSProperties = {
   marginTop: "0.25rem",
 };
 
-export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props) {
-  const initialState: FormState = { ...INITIAL_STATE, advertiserEmail: defaultEmail ?? "" };
+export function CampaignForm({ auctionData, successSuffix, defaultEmail, editCampaignData, onDone }: Props) {
+  const isEdit = Boolean(editCampaignData);
+  const initialState: FormState = editCampaignData
+    ? {
+        advertiserEmail: defaultEmail ?? "",
+        text: editCampaignData.text,
+        url: editCampaignData.url,
+        brandName: editCampaignData.brand_name ?? "",
+        brandIcon: null, // null = on garde l'icône existante (non rechargée ici)
+        showOnLeaderboard: Boolean(editCampaignData.show_on_leaderboard),
+        bid: (editCampaignData.bid_cents / 100).toFixed(2).replace(".", ","),
+        blocks: String(editCampaignData.blocks),
+      }
+    : { ...INITIAL_STATE, advertiserEmail: defaultEmail ?? "" };
   const [form, setForm] = useState<FormState>(initialState);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [status, setStatus] = useState<SubmitStatus>({ kind: "idle" });
@@ -112,7 +130,8 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
   function validate(): boolean {
     const newErrors: Partial<Record<keyof FormState, string>> = {};
     const emailRe = /.+@.+\..+/;
-    if (!emailRe.test(form.advertiserEmail))
+    // En édition : email et icône ne sont pas requis (on garde l'existant).
+    if (!isEdit && !emailRe.test(form.advertiserEmail))
       newErrors.advertiserEmail = "Adresse email invalide.";
     if (form.text.length < 3 || form.text.length > 60)
       newErrors.text = "Le texte doit faire entre 3 et 60 caractères.";
@@ -124,7 +143,7 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
       newErrors.blocks = "Il faut au moins 1 bloc.";
     if (!form.brandName.trim())
       newErrors.brandName = "Le nom de marque est obligatoire.";
-    if (!form.brandIcon)
+    if (!isEdit && !form.brandIcon)
       newErrors.brandIcon = "L'icône de marque est obligatoire.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -135,6 +154,28 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
     if (!validate()) return;
     setStatus({ kind: "loading" });
     try {
+      // --- Mode ÉDITION ---
+      if (isEdit && editCampaignData) {
+        const result = await editCampaign(editCampaignData.id, {
+          text: form.text,
+          url: form.url,
+          bidCents,
+          blocks: blocksCount,
+          brandName: form.brandName,
+          showOnLeaderboard: form.showOnLeaderboard,
+          // n'envoyer l'icône que si l'annonceur en a chargé une nouvelle
+          ...(form.brandIcon ? { brandIcon: form.brandIcon } : {}),
+        });
+        if (result.checkoutUrl) {
+          window.location.href = result.checkoutUrl; // payer la différence
+          return;
+        }
+        setStatus({ kind: "success", message: "Campagne mise à jour." });
+        onDone?.();
+        return;
+      }
+
+      // --- Mode CRÉATION ---
       const result = await createCampaign({
         advertiserEmail: form.advertiserEmail,
         text: form.text,
@@ -176,10 +217,10 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
       }));
       return;
     }
-    if (file.size > 64 * 1024) {
+    if (file.size > 512 * 1024) {
       setErrors((prev) => ({
         ...prev,
-        brandIcon: "L'icône doit faire moins de 64 Ko.",
+        brandIcon: "L'icône doit faire moins de 512 Ko.",
       }));
       return;
     }
@@ -205,6 +246,9 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
   }
 
   const bidAboveTop = bidCents > topBidCents;
+  // En édition : différence à payer si le nouveau coût (bid x blocs) dépasse l'ancien.
+  const editOldCost = editCampaignData ? editCampaignData.bid_cents * editCampaignData.blocks : 0;
+  const editDiffCents = isEdit ? Math.max(0, bidCents * blocksCount - editOldCost) : 0;
 
   return (
     <form
@@ -212,17 +256,19 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
       noValidate
       style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
     >
-      {/* Email annonceur : champ libre, non prefill */}
-      <Input
-        label="Email annonceur"
-        type="email"
-        required
-        autoComplete="email"
-        placeholder="vous@votreentreprise.com"
-        value={form.advertiserEmail}
-        onChange={(e) => set("advertiserEmail", e.target.value)}
-        error={errors.advertiserEmail}
-      />
+      {/* Email annonceur : seulement à la création (en édition on garde l'existant). */}
+      {!isEdit && (
+        <Input
+          label="Email annonceur"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="vous@votreentreprise.com"
+          value={form.advertiserEmail}
+          onChange={(e) => set("advertiserEmail", e.target.value)}
+          error={errors.advertiserEmail}
+        />
+      )}
 
       {/* Texte publicitaire avec compteur */}
       <div>
@@ -301,7 +347,7 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
       <div>
         <p style={{ ...labelStyle, marginBottom: "0.375rem" }}>
           Icône de marque <span style={{ color: "var(--color-black)", fontWeight: 600, fontSize: "0.8125rem" }}>*</span>{" "}
-          <span style={{ color: "var(--color-gray-400)", fontWeight: 400 }}>(PNG/JPG/WebP, max 64 Ko)</span>
+          <span style={{ color: "var(--color-gray-400)", fontWeight: 400 }}>(PNG/JPG/WebP, max 512 Ko)</span>
         </p>
         <div
           role="button"
@@ -527,7 +573,11 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail }: Props
         disabled={status.kind === "loading"}
         style={{ width: "100%" }}
       >
-        Payer maintenant
+        {isEdit
+          ? editDiffCents > 0
+            ? `Payer la différence (${formatEur(editDiffCents)})`
+            : "Enregistrer les modifications"
+          : "Payer maintenant"}
       </Button>
     </form>
   );

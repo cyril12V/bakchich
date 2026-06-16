@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Bakchich — fabrique l'archive de PROD à uploader sur le VPS
+#  Bakchich : fabrique l'archive de PROD à uploader sur le VPS
 #  -------------------------------------------------------------------------
 #  À lancer depuis la racine du repo (sur ta machine) :
 #      bash ops/package-prod.sh

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Bakchich — provisioning d'un VPS NEUF (Ubuntu/Debian)
+#  Bakchich : provisioning d'un VPS NEUF (Ubuntu/Debian)
 #  -------------------------------------------------------------------------
 #  À lancer UNE SEULE FOIS, en root, sur un serveur fraîchement créé :
 #      sudo bash provision.sh

@@ -1,4 +1,4 @@
-# ✅ BAKCHICH — Checklist complète du projet
+# ✅ BAKCHICH : Checklist complète du projet
 
 > Sois payé pendant que ça tourne. Régie publicitaire du spinner Claude Code, version 🇫🇷.
 
@@ -11,13 +11,13 @@
 - [ ] Rotation des pubs : appel API toutes les 60 s pour récupérer la campagne gagnante de l'enchère
 - [ ] Tracking d'impressions : tick de 5 s uniquement si fenêtre VS Code active + terminal ouvert
 - [ ] Idempotence : chaque événement a un `eventId` unique (jamais compté deux fois)
-- [ ] Clics trackés **côté serveur** via lien de redirection court (`/c/:campaignId`) — fiable à 100 %
+- [ ] Clics trackés **côté serveur** via lien de redirection court (`/c/:campaignId`) : fiable à 100 %
 - [ ] Barre de statut : solde en temps réel (`Bakchich ✓ 0,42 € auj. · 7,11 €`)
 - [ ] Connexion Google OAuth → token stocké dans le **SecretStorage VS Code** (trousseau OS)
-- [ ] Mode pause (commande `Bakchich: Pause`) — l'utilisateur garde le contrôle
+- [ ] Mode pause (commande `Bakchich: Pause`) : l'utilisateur garde le contrôle
 - [ ] **Kill-switch serveur** : un flag côté backend désactive tout et restaure les spinners de TOUS les clients
 - [ ] Rien ne s'affiche avant le sign-in explicite (opt-in strict)
-- [ ] Ne JAMAIS lire le code, les prompts ou les fichiers du dev — uniquement settings.json
+- [ ] Ne JAMAIS lire le code, les prompts ou les fichiers du dev : uniquement settings.json
 - [ ] Self-update via le Marketplace (automatique)
 - [ ] Tests : suite vitest sur l'injection/restauration (le fichier settings.json ne doit JAMAIS être corrompu)
 
@@ -36,23 +36,23 @@
 ## 3. ARGENT
 
 - [ ] **Encaissement annonceurs** : Stripe Checkout (paiement à l'achat de blocs, à partir de 1 €)
-- [ ] **Reversement devs** : Stripe Connect Express (payout SEPA en €) — **ouvert dès le jour 1** (leur faiblesse = ton arme)
+- [ ] **Reversement devs** : Stripe Connect Express (payout SEPA en €) : **ouvert dès le jour 1** (leur faiblesse = ton arme)
 - [ ] Seuil de payout mini (ex. 10 €) pour limiter les frais
 - [ ] Collecte des infos fiscales des devs via Stripe Connect (il gère le KYC pour toi)
 - [ ] CGU : préciser que les gains sont des revenus imposables à déclarer par l'utilisateur
 - [ ] Ta structure : micro-entreprise possible au début (BNC), bascule SASU si ça décolle (seuils TVA/CA)
-- [ ] Facturation annonceurs avec TVA française (20 %) — Stripe Tax peut automatiser
+- [ ] Facturation annonceurs avec TVA française (20 %) : Stripe Tax peut automatiser
 
 ## 4. LÉGAL / RGPD
 
 - [ ] Politique de confidentialité (fournie dans `/legal`) : données minimales = email, nom, événements pub. JAMAIS le code/les prompts
 - [ ] CGU utilisateurs + CGV annonceurs (fournies dans `/legal`)
-- [ ] Mentions légales (obligatoires en France — éditeur, hébergeur, SIRET)
+- [ ] Mentions légales (obligatoires en France : éditeur, hébergeur, SIRET)
 - [ ] Base légale RGPD : exécution du contrat (pas besoin de bannière cookies si pas de tracker tiers sur le site)
 - [ ] Registre des traitements (simple doc interne)
 - [ ] DPO non obligatoire à ta taille, mais désigner un contact privacy : privacy@tondomaine
 - [ ] Modération des pubs : validation manuelle de chaque créa avant diffusion (pas de scam, crypto douteuse, contenu adulte)
-- [ ] Code de l'extension en **miroir public GitHub** (transparence = confiance) avec licence "source-available" (lisible mais pas réutilisable — comme eux)
+- [ ] Code de l'extension en **miroir public GitHub** (transparence = confiance) avec licence "source-available" (lisible mais pas réutilisable : comme eux)
 - [ ] Ne pas utiliser les marques "Claude", "Anthropic", "Codex" dans ton nom/logo (les citer de façon descriptive est OK : « compatible avec Claude Code »)
 - [ ] Disclaimer visible : « Projet indépendant, non affilié à Anthropic »
 

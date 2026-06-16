@@ -29,7 +29,7 @@ Voici Bakchich. 🪙
 - J-5 : démarcher 8-10 annonceurs FR avec blocs OFFERTS (SaaS dev, hébergeurs, formations, néobanques pro). Objectif : 3 logos crédibles dans l'enchère au lancement.
 - J-2 : vidéo démo + page Marketplace + landing en ligne.
 - J0 matin : post X + LinkedIn. Midi : r/programmation, Discords dev FR. Soir : réponse à TOUS les commentaires.
-- J0 (version EN) : Show HN — le marché FR est petit, l'extension marche partout.
+- J0 (version EN) : Show HN : le marché FR est petit, l'extension marche partout.
 - J+3 : thread "les chiffres après 72 h" (transparence = 2e vague de reach).
 
 ## Réponses aux objections (préparées)

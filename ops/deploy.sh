@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Bakchich — deploiement "une commande" (idempotent)
+#  Bakchich : deploiement "une commande" (idempotent)
 #  -------------------------------------------------------------------------
 #  Usage (sur le VPS, en tant qu'utilisateur ayant sudo) :
 #      /opt/bakchich/ops/deploy.sh

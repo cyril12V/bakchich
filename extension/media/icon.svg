@@ -2,14 +2,14 @@
   <!-- Fond carré arrondi noir -->
   <rect width="128" height="128" rx="22" ry="22" fill="#111111"/>
 
-  <!-- Lettre B — paths géométriques nets -->
+  <!-- Lettre B : paths géométriques nets -->
   <!-- Barre verticale gauche -->
   <rect x="28" y="22" width="14" height="84" rx="4" fill="#ffffff"/>
 
-  <!-- Bosse haute — demi-cercle plein -->
+  <!-- Bosse haute : demi-cercle plein -->
   <path d="M42 22 h20 a22 22 0 0 1 0 44 H42 Z" fill="#ffffff"/>
 
-  <!-- Bosse basse — demi-cercle plus large, accent vert acide -->
+  <!-- Bosse basse : demi-cercle plus large, accent vert acide -->
   <path d="M42 66 h24 a28 28 0 0 1 0 40 H42 Z" fill="#aaff00"/>
 
   <!-- Séparateur horizontal entre les deux bosses (trait blanc sur vert) -->

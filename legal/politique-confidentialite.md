@@ -1,8 +1,8 @@
-# Politique de confidentialité — Bakchich
-*Dernière mise à jour : [DATE] — Modèle à faire relire par un juriste avant publication.*
+# Politique de confidentialité : Bakchich
+*Dernière mise à jour : [DATE] : Modèle à faire relire par un juriste avant publication.*
 
 ## Qui sommes-nous
-Bakchich est édité par [TA STRUCTURE — nom, forme, SIRET, adresse].
+Bakchich est édité par [TA STRUCTURE : nom, forme, SIRET, adresse].
 Contact privacy : privacy@bakchich.dev
 
 ## Ce que nous collectons
@@ -24,7 +24,7 @@ Intérêt légitime (art. 6.1.f) : prévention de la fraude, sécurité du servi
 Compte : jusqu'à suppression par l'utilisateur. Événements : 3 ans (preuve comptable des reversements). IP : 30 jours max.
 
 ## Destinataires
-Stripe (paiements et reversements), [hébergeur UE — ex. Scaleway/OVH] (infrastructure). Aucune vente de données, aucun courtier en données, aucune utilisation pour entraîner des modèles d'IA.
+Stripe (paiements et reversements), [hébergeur UE : ex. Scaleway/OVH] (infrastructure). Aucune vente de données, aucun courtier en données, aucune utilisation pour entraîner des modèles d'IA.
 
 ## Tes droits
 Accès, rectification, effacement, portabilité, opposition : écris à privacy@bakchich.dev. Réclamation possible auprès de la CNIL (cnil.fr).

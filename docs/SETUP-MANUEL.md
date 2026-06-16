@@ -1,4 +1,4 @@
-# 🔧 Bakchich — Ce que TU dois faire à la main
+# 🔧 Bakchich : Ce que TU dois faire à la main
 
 > Tout le code est prêt. Ce qui reste, ce sont les comptes externes que je ne peux pas créer pour toi (ils demandent ton identité, ta CB, ta validation). Suis cette liste dans l'ordre. Coche au fur et à mesure.
 
@@ -6,14 +6,14 @@ Légende : ⏱️ = temps estimé · 💶 = coûte de l'argent · 🆓 = gratuit
 
 ---
 
-## 1. Nom de domaine — `bakchich.dev` 🆓→💶 ⏱️ 10 min
+## 1. Nom de domaine : `bakchich.dev` 🆓→💶 ⏱️ 10 min
 
 1. Achète **bakchich.dev** chez un registrar (OVH, Gandi, Namecheap, Cloudflare…). ~12–15 €/an. La zone `.dev` **impose le HTTPS** (c'est géré par certbot plus tard, rien à faire ici).
 2. Dans la zone DNS, crée 3 enregistrements **A** pointant vers l'IP de ton VPS (étape 5) :
    - `@`   → `IP_DU_VPS`
    - `www` → `IP_DU_VPS`
    - `api` → `IP_DU_VPS`
-3. (Optionnel) un domaine court pour les liens de clic (ex. `bakch.li`) — pas nécessaire au lancement, le clic passe par `api.bakchich.dev/c/...`.
+3. (Optionnel) un domaine court pour les liens de clic (ex. `bakch.li`) : pas nécessaire au lancement, le clic passe par `api.bakchich.dev/c/...`.
 
 > Tu peux faire le VPS (étape 5) avant le domaine pour avoir l'IP, puis revenir ici.
 
@@ -26,7 +26,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
 1. Va sur **console.cloud.google.com** → crée un projet « Bakchich ».
 2. Menu **APIs & Services → OAuth consent screen** :
    - Type : **External**. Renseigne nom de l'app « Bakchich », email support, logo (ton `logo.png`), domaine `bakchich.dev`, email dev.
-   - Scopes : ajoute `openid`, `email`, `profile` (rien de plus — on ne lit que l'email).
+   - Scopes : ajoute `openid`, `email`, `profile` (rien de plus : on ne lit que l'email).
    - Au début l'app est en mode **Test** : ajoute ton email dans « Test users » pour pouvoir te connecter. Pour ouvrir à tous → bouton **Publish app** (validation Google rapide pour ces scopes basiques).
 3. Menu **Credentials → Create credentials → OAuth client ID** :
    - Type : **Web application**.
@@ -41,7 +41,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
 
 ---
 
-## 3. Stripe — encaisser les annonceurs + payer les devs 🆓 (commissions par transaction) ⏱️ 45 min
+## 3. Stripe : encaisser les annonceurs + payer les devs 🆓 (commissions par transaction) ⏱️ 45 min
 
 > ⚠️ Fais TOUT en **mode Test** d'abord (toggle en haut à droite du dashboard Stripe). Tu basculeras en **Live** au tout dernier moment.
 
@@ -66,7 +66,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
    > En local, pour tester le webhook sans domaine public : installe le **Stripe CLI** et lance
    > `stripe listen --forward-to localhost:3939/webhooks/stripe` → il t'affiche un `whsec_...` temporaire.
 
-### 3.4 Stripe Connect (pour reverser aux devs) — l'argument n°1 du projet
+### 3.4 Stripe Connect (pour reverser aux devs) : l'argument n°1 du projet
 6. **Connect → Get started** → choisis le type **Express** (Stripe gère KYC, infos fiscales, IBAN à ta place).
 7. Renseigne ta « platform/business profile » (nom Bakchich, logo, site, description courte).
 8. Rien d'autre à coder : le bouton « Configurer mes virements » du dashboard appelle déjà `POST /api/me/connect/onboard` qui crée le compte Express et la page d'onboarding Stripe.
@@ -84,7 +84,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
 
 ---
 
-## 4. Marketplace VS Code — publier l'extension 🆓 ⏱️ 30 min (+ 1–2 j de validation au 1er coup)
+## 4. Marketplace VS Code : publier l'extension 🆓 ⏱️ 30 min (+ 1–2 j de validation au 1er coup)
 
 1. Crée un compte **Azure DevOps** (dev.azure.com) avec le même email.
 2. Génère un **Personal Access Token (PAT)** : organisation « All accessible », scope **Marketplace → Manage**.
@@ -123,7 +123,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
 - **Statut** : micro-entreprise (BNC) suffit pour démarrer ; bascule SASU si ça décolle (seuils TVA/CA).
 - **Mentions légales** : éditeur (toi/ta structure), hébergeur (ton VPS provider), SIRET → à compléter dans `legal/mentions-legales.md`.
 - **RGPD** : on ne collecte que email + événements pub. Base légale = exécution du contrat. Désigne un contact `privacy@bakchich.dev`.
-- **CGU / CGV / Confidentialité** : modèles dans `legal/` — **fais-les relire par un juriste** avant le lancement.
+- **CGU / CGV / Confidentialité** : modèles dans `legal/` : **fais-les relire par un juriste** avant le lancement.
 - **Disclaimer Anthropic** : « Projet indépendant, non affilié à Anthropic » est déjà affiché partout. Ne pas utiliser les marques Claude/Anthropic dans le nom/logo.
 - **Modération** : valide manuellement chaque créa via l'admin avant diffusion (pas de scam/crypto douteuse/contenu adulte).
 

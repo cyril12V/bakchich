@@ -1,4 +1,4 @@
-# 🚀 Déploiement VPS — Bakchich
+# 🚀 Déploiement VPS : Bakchich
 
 Runbook pas-à-pas pour déployer Bakchich sur un VPS Ubuntu/Debian.
 Architecture cible :
@@ -39,7 +39,7 @@ L'extension VS Code, elle, tape directement `https://api.bakchich.dev`.
 
 ---
 
-## ⚠️ Prérequis CRITIQUE côté backend — `trust proxy`
+## ⚠️ Prérequis CRITIQUE côté backend : `trust proxy`
 
 Le backend tourne **derrière nginx**. Sans configuration, `req.ip` vaut
 `127.0.0.1` pour TOUTES les requêtes → l'anti-fraude (`ipRateLimit(req.ip)` dans
@@ -137,7 +137,7 @@ chown bakchich:bakchich /opt/bakchich/backend/.env
 
 À remplir impérativement :
 - `BASE_URL=https://api.bakchich.dev`
-- `SITE_URL=https://bakchich.dev` — **CRITIQUE** : sans cette variable, les redirections Stripe (success_url) et le retour de connexion web (`#token`) pointent vers `api.bakchich.dev` → 404. Le tunnel de paiement et la connexion web seraient cassés.
+- `SITE_URL=https://bakchich.dev` : **CRITIQUE** : sans cette variable, les redirections Stripe (success_url) et le retour de connexion web (`#token`) pointent vers `api.bakchich.dev` → 404. Le tunnel de paiement et la connexion web seraient cassés.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
   (redirect URI Google : `https://api.bakchich.dev/auth/google/callback`)
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`
@@ -186,13 +186,13 @@ cp -r /opt/bakchich/legal         /var/www/bakchich/legal
 chown -R www-data:www-data /var/www/bakchich
 ```
 
-> **Déploiements suivants :** inutile de refaire ces copies à la main —
+> **Déploiements suivants :** inutile de refaire ces copies à la main :
 > `ops/deploy.sh` resynchronise automatiquement le front statique (landing +
 > dashboard + annonceurs + legal) vers `/var/www/bakchich` à chaque exécution.
 
 ---
 
-## 8. nginx — installer les vhosts
+## 8. nginx : installer les vhosts
 
 ```bash
 apt-get install -y nginx
