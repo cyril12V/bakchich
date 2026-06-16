@@ -6,7 +6,7 @@
   "publisher": "bakchich",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "media/icon.png",
-  "repository": { "type": "git", "url": "https://github.com/bakchich/bakchich" },
+  "repository": { "type": "git", "url": "https://github.com/cyril12V/bakchich" },
   "homepage": "https://bakchich.dev",
   "bugs": { "url": "https://bakchich.dev" },
   "engines": { "vscode": "^1.85.0" },
