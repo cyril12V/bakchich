@@ -77,6 +77,19 @@ describe("injection / restauration du spinner", () => {
     expect(fs.readFileSync(settingsPath(), "utf8")).toBe(arr); // intact
   });
 
+  it("crée un settings.json minimal s'il est absent (zéro manip utilisateur)", async () => {
+    // ~/.claude existe (créé dans beforeEach) mais pas de settings.json.
+    expect(fs.existsSync(settingsPath())).toBe(false);
+    const { injectAd, restore } = await freshAdapter();
+    expect(injectAd("Pub auto ↗")).toBe(true);
+    const after = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
+    expect(after.spinnerVerbs).toEqual(["Pub auto ↗"]);
+    // restore() doit rendre le fichier propre (pas de spinnerVerbs résiduel).
+    restore();
+    const restored = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
+    expect("spinnerVerbs" in restored).toBe(false);
+  });
+
   it("ne fait rien si Claude Code est absent", async () => {
     fs.rmSync(path.join(tmpHome, ".claude"), { recursive: true });
     const { injectAd, claudeCodeDetected } = await freshAdapter();

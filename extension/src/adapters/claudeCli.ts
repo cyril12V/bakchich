@@ -69,8 +69,17 @@ function backupOriginal(settings: ClaudeSettings): void {
  * @returns true si l'injection a réussi.
  */
 export function injectAd(adLine: string): boolean {
-  const settings = readSettings();
-  if (settings === null) return false; // pas de Claude Code ou JSON cassé
+  const exists = fs.existsSync(settingsPath());
+  let settings = readSettings();
+  if (settings === null) {
+    // Fichier PRÉSENT mais illisible/invalide (ex. tableau) → on ne détruit RIEN.
+    if (exists) return false;
+    // Fichier ABSENT mais ~/.claude présent → on crée une base propre. L'utilisateur
+    // n'a aucune manip à faire ; backupOriginal retiendra "pas de spinnerVerbs"
+    // d'origine, donc restore() rendra le fichier à {}.
+    if (!claudeCodeDetected()) return false;
+    settings = {};
+  }
 
   // Idempotent : si la même pub est déjà en place, rien à faire.
   const current = settings.spinnerVerbs;
