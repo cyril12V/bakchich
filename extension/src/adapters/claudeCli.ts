@@ -32,7 +32,9 @@ function readSettings(): ClaudeSettings | null {
     if (!fs.existsSync(settingsPath())) return null;
     const raw = fs.readFileSync(settingsPath(), "utf8");
     const parsed = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return null;
+    // Attention : typeof [] === "object". Un tableau JSON n'est PAS un settings
+    // valide pour Claude Code → on refuse, sinon on écrirait un tableau corrompu.
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
     return parsed as ClaudeSettings;
   } catch {
     return null; // JSON cassé ou illisible → on ne touche à rien.

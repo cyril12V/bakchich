@@ -66,6 +66,17 @@ describe("injection / restauration du spinner", () => {
     expect(fs.readFileSync(settingsPath(), "utf8")).toBe("{ json: cassé !!!"); // intact
   });
 
+  it("ne touche à RIEN si settings.json est un tableau JSON (pas un objet)", async () => {
+    // Cas réel : Claude Code refuse un settings.json qui est un tableau.
+    // typeof [] === "object" → on doit explicitement le rejeter, sinon on
+    // réécrirait un tableau corrompu et le spinner ne s'afficherait jamais.
+    const arr = '[{ "foo": "bar" }]';
+    fs.writeFileSync(settingsPath(), arr);
+    const { injectAd } = await freshAdapter();
+    expect(injectAd("Pub")).toBe(false);
+    expect(fs.readFileSync(settingsPath(), "utf8")).toBe(arr); // intact
+  });
+
   it("ne fait rien si Claude Code est absent", async () => {
     fs.rmSync(path.join(tmpHome, ".claude"), { recursive: true });
     const { injectAd, claudeCodeDetected } = await freshAdapter();

@@ -39,6 +39,7 @@ type Mode =
   | "killed"
   | "offline"
   | "incompatible"
+  | "settingsError"
   | "paused";
 
 /* ------------------------------ Etat global ------------------------------- */
@@ -51,6 +52,7 @@ let balance: Balance | null = null;
 let currentAd: Ad | null = null;
 let paused = false;
 let previewText: string | null = null; // apercu avant connexion, non creditant
+let injected = false; // la pub est-elle REELLEMENT en place dans le spinner ?
 let visibleMs = 0; // temps visible cumule pour l'impression en cours
 let lastDiag = "jamais"; // dernier resultat de poll (pour le diagnostic)
 
@@ -113,6 +115,13 @@ function render(): void {
       statusBar.text = "$(warning) Bakchich (Claude Code introuvable)";
       statusBar.tooltip = "Claude Code n'est pas detecte (~/.claude introuvable). Installe/lance Claude Code, puis relance VS Code.";
       break;
+    case "settingsError":
+      statusBar.text = "$(warning) Bakchich (settings.json illisible)";
+      statusBar.tooltip =
+        "~/.claude/settings.json est invalide (JSON casse ou tableau au lieu d'un objet). " +
+        "Tant qu'il n'est pas repare, la pub ne peut pas s'afficher et AUCUN gain n'est compte. " +
+        "Ouvre le fichier et assure-toi que c'est un objet JSON { ... }.";
+      break;
     case "paused":
       statusBar.text = "$(debug-pause) Bakchich (en pause)";
       statusBar.tooltip = "En pause : aucune pub, aucun gain. Clique pour reprendre.";
@@ -152,6 +161,7 @@ async function poll(): Promise<void> {
   const state = res.data;
   if (state.killswitch) {
     currentAd = null;
+    injected = false;
     restore();
     setMode("killed");
     return;
@@ -159,6 +169,7 @@ async function poll(): Promise<void> {
 
   if (!claudeCodeDetected()) {
     currentAd = null;
+    injected = false;
     setMode("incompatible");
     return;
   }
@@ -167,18 +178,29 @@ async function poll(): Promise<void> {
     if (!currentAd || currentAd.campaignId !== state.ad.campaignId) {
       visibleMs = 0; // nouvelle pub : compteur propre
     }
-    currentAd = state.ad;
-    injectAd(state.ad.line);
-    setMode("earning");
+    // On ne credite QUE si la pub est reellement injectee dans le spinner.
+    // injectAd echoue si settings.json est invalide/illisible/non inscriptible :
+    // dans ce cas, rien ne s'affiche, donc AUCUNE impression ne doit compter.
+    injected = injectAd(state.ad.line);
+    if (injected) {
+      currentAd = state.ad;
+      setMode("earning");
+    } else {
+      currentAd = null;
+      visibleMs = 0;
+      log("injection impossible (settings.json invalide ?) : aucun gain compte.");
+      setMode("settingsError");
+    }
   } else {
     currentAd = null;
+    injected = false;
     restore();
     setMode("earning"); // connecte, en attente d'un annonceur
   }
 }
 
 async function tick(): Promise<void> {
-  if (paused || mode !== "earning" || !currentAd) return;
+  if (paused || mode !== "earning" || !currentAd || !injected) return;
   if (!userIsPlausiblyWatching()) return;
 
   visibleMs += TICK_MS;
@@ -250,6 +272,7 @@ async function doSignIn(): Promise<void> {
 async function hardSignOut(notice?: string): Promise<void> {
   stopLoops();
   currentAd = null;
+  injected = false;
   balance = null;
   restore();
   await signOut(ctxRef);
@@ -263,6 +286,7 @@ function togglePause(): void {
   paused = !paused;
   if (paused) {
     currentAd = null;
+    injected = false;
     restore();
     setMode("paused");
   } else {
