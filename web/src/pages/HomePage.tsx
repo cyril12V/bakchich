@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageLayout } from "@/components/layouts/PageLayout";
 import { BidMarket } from "@/components/ui/BidMarket";
@@ -90,7 +90,15 @@ const FAQ_HOME = [
 
 /* -------- Illustration Avant / Apres (fond blanc, cartes claires) -------- */
 function HeroIllustration() {
-  const [earnings, setEarnings] = useState(0.02);
+  // Le solde grimpe TOUT SEUL de 0 à 40 € puis reboucle : on montre qu'on gagne
+  // sans rien faire, juste en laissant Claude tourner (+0,10 € par pub vue).
+  const [earnings, setEarnings] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setEarnings((v) => (v >= 40 ? 0 : Math.round((v + 0.1) * 100) / 100));
+    }, 28);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div aria-hidden="true" style={{ position: "relative", maxWidth: "340px", marginLeft: "auto" }}>
@@ -239,34 +247,42 @@ function HeroIllustration() {
             </span>
           </div>
 
-          <div style={{ marginTop: "0.625rem" }}>
-            <button
-              onClick={() => setEarnings((v) => Math.round((v + 0.02) * 100) / 100)}
+          <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+            <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "0.375rem",
+                gap: "0.3rem",
+                alignSelf: "flex-start",
                 backgroundColor: "var(--color-accent)",
                 color: "var(--color-black)",
-                border: "none",
                 borderRadius: "6px",
-                padding: "0.25rem 0.625rem",
-                fontSize: "0.8125rem",
+                padding: "0.15rem 0.5rem",
+                fontSize: "0.75rem",
                 fontWeight: 700,
                 fontFamily: "var(--font-body)",
-                cursor: "pointer",
-                transition: "background-color var(--transition-fast)",
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-accent-hover)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-accent)";
-              }}
-              aria-label="Simuler un gain"
             >
-              +{earnings.toFixed(2)} EUR pour toi
-            </button>
+              +0,10 € pour toi · à chaque pub vue
+            </span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "0.45rem", marginTop: "0.15rem" }}>
+              <span
+                aria-live="off"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "1.6rem",
+                  fontWeight: 800,
+                  color: "var(--color-black)",
+                  letterSpacing: "-0.02em",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {earnings.toFixed(2).replace(".", ",")} €
+              </span>
+              <span style={{ fontSize: "0.6875rem", color: "var(--color-gray-400)", fontFamily: "var(--font-body)" }}>
+                ton solde, en direct
+              </span>
+            </div>
           </div>
         </div>
       </div>
