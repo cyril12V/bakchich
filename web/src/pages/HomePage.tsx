@@ -247,8 +247,10 @@ function HeroIllustration() {
             </span>
           </div>
 
-          <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+          <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            {/* Le MONTANT dans le badge vert grimpe tout seul de 0 à 40 €. */}
             <span
+              aria-live="off"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -256,33 +258,20 @@ function HeroIllustration() {
                 alignSelf: "flex-start",
                 backgroundColor: "var(--color-accent)",
                 color: "var(--color-black)",
-                borderRadius: "6px",
-                padding: "0.15rem 0.5rem",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                fontFamily: "var(--font-body)",
+                borderRadius: "8px",
+                padding: "0.3rem 0.7rem",
+                fontFamily: "var(--font-display)",
+                fontSize: "1.15rem",
+                fontWeight: 800,
+                letterSpacing: "-0.01em",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
-              +0,10 € pour toi · à chaque pub vue
+              + {earnings.toFixed(2).replace(".", ",")} € pour toi
             </span>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.45rem", marginTop: "0.15rem" }}>
-              <span
-                aria-live="off"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "1.6rem",
-                  fontWeight: 800,
-                  color: "var(--color-black)",
-                  letterSpacing: "-0.02em",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {earnings.toFixed(2).replace(".", ",")} €
-              </span>
-              <span style={{ fontSize: "0.6875rem", color: "var(--color-gray-400)", fontFamily: "var(--font-body)" }}>
-                ton solde, en direct
-              </span>
-            </div>
+            <span style={{ fontSize: "0.6875rem", color: "var(--color-gray-400)", fontFamily: "var(--font-body)" }}>
+              ton solde en direct · +0,10 € à chaque pub vue
+            </span>
           </div>
         </div>
       </div>
