@@ -47,6 +47,11 @@ export function BidMarket({ compact = false, onDataLoaded }: Props) {
       : data.queue
     : [];
 
+  // La file est triée par bid décroissant. À bid égal, l'enchère sert les campagnes
+  // ex æquo en tête à tour de rôle (rotation côté backend) : elles diffusent donc
+  // TOUTES réellement. Le statut « Diffusé » suit le bid max, pas la seule position #1.
+  const topBidCents = filteredQueue[0]?.bid_cents ?? 0;
+
   return (
     <section aria-label="Bid Market en temps réel">
       {/* Header */}
@@ -287,8 +292,8 @@ export function BidMarket({ compact = false, onDataLoaded }: Props) {
                     {item.impressions_left.toLocaleString("fr-FR")}
                   </td>
                   <td style={{ padding: "0.875rem 1rem" }}>
-                    <Badge variant={index === 0 ? "live" : "muted"}>
-                      {index === 0 ? "Diffusé" : "En file"}
+                    <Badge variant={item.bid_cents === topBidCents ? "live" : "muted"}>
+                      {item.bid_cents === topBidCents ? "Diffusé" : "En file"}
                     </Badge>
                   </td>
                 </tr>
