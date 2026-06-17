@@ -70,9 +70,10 @@ const FAQ_HOME = [
     question: "Marche dans quel contexte exactement ?",
     answer: (
       <p>
-        L'extension intercepte le spinner "Percolating..." de Claude Code dans VS Code
-        et les IDE compatibles. Le CLI terminal est aussi supporté. Elle ne fait rien en
-        dehors de ces contextes.
+        L'extension remplace le spinner "Percolating..." de Claude Code <strong>quand il
+        tourne dans un terminal (CLI)</strong> — y compris le terminal intégré de VS Code.
+        L'interface graphique (panneau UI de Claude) n'affiche pas la pub : aucun gain n'y
+        est compté. Elle ne fait rien en dehors de ces contextes.
       </p>
     ),
   },
@@ -576,7 +577,7 @@ export function HomePage() {
                 fontFamily: "var(--font-body)",
               }}
             >
-              Extension VS Code · Claude Code · Codex
+              Extension VS Code · Claude Code en terminal (CLI)
             </p>
 
             <h1
@@ -603,14 +604,34 @@ export function HomePage() {
                 maxWidth: "420px",
               }}
             >
-              Quand Claude Code réfléchit, son petit texte d'attente affiche une
-              pub. Des annonceurs paient pour cette ligne, et tu en touches{" "}
+              Quand Claude Code réfléchit <strong style={{ color: "var(--color-black)", fontWeight: 700 }}>dans le terminal</strong>,
+              son petit texte d'attente affiche une pub. Des annonceurs paient
+              pour cette ligne, et tu en touches{" "}
               <strong style={{ color: "var(--color-black)", fontWeight: 700 }}>
                 50 % en euros
               </strong>
               . Tu ne fais rien de plus : tu laisses Claude tourner, ton solde
               monte tout seul. C'est gratuit, et ça ne change rien à ta façon de
               coder.
+            </p>
+
+            <p
+              style={{
+                fontSize: "0.8125rem",
+                color: "var(--color-gray-500)",
+                lineHeight: 1.5,
+                marginBottom: "2rem",
+                fontFamily: "var(--font-body)",
+                maxWidth: "420px",
+                padding: "0.625rem 0.875rem",
+                borderRadius: "8px",
+                background: "var(--color-gray-50)",
+                border: "1px solid var(--color-gray-200)",
+              }}
+            >
+              ⓘ Les gains se font <strong style={{ color: "var(--color-black)" }}>uniquement en terminal (CLI)</strong>,
+              là où s'affiche le spinner de Claude Code. L'interface graphique
+              (panneau UI) n'affiche pas la pub et ne génère donc aucun gain.
             </p>
 
             {/* CTA glassmorphism */}

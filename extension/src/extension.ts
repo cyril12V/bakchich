@@ -29,6 +29,7 @@ import { getToken, signIn, signOut } from "./auth";
 /* ------------------------------ Reglages ---------------------------------- */
 const STATE_POLL_MS = 60_000; // rotation des pubs + kill-switch
 const TICK_MS = 1_000; // granularite de l'accumulation de temps visible
+const STARTUP_GRACE_MS = 15_000; // au lancement de claude : ecran d'accueil + saisie du 1er prompt, AUCUN spinner → on ne facture pas
 const BALANCE_POLL_MS = 30_000; // rafraichissement du solde
 const DEVICE_KEY = "bakchich.deviceId";
 
@@ -56,6 +57,7 @@ let injected = false; // la pub est-elle REELLEMENT en place dans le spinner ?
 // Terminaux qui font tourner `claude` (→ nb de commandes claude actives dedans).
 // On ne credite que si le terminal ACTIF (celui regarde) est l'un d'eux.
 const claudeTerminals = new Map<vscode.Terminal, number>();
+let startupGraceUntil = 0; // horodatage jusqu'auquel on ne facture pas (demarrage claude)
 let visibleMs = 0; // temps visible cumule pour l'impression en cours
 let lastDiag = "jamais"; // dernier resultat de poll (pour le diagnostic)
 
@@ -112,6 +114,7 @@ function watchClaudeRuns(ctx: vscode.ExtensionContext): void {
     onStart((e) => {
       if (e.terminal && isClaudeCommand(e.execution?.commandLine?.value ?? "")) {
         claudeTerminals.set(e.terminal, (claudeTerminals.get(e.terminal) ?? 0) + 1);
+        startupGraceUntil = Date.now() + STARTUP_GRACE_MS; // pas de facturation au demarrage
         log(`claude demarre dans un terminal (sessions: ${claudeRunCount()}).`);
       }
     }),
@@ -258,6 +261,12 @@ async function tick(): Promise<void> {
   // CONTINUE : toute interruption remet le compteur à zéro. Conséquence directe :
   // l'UI graphique de Claude (affichage non vérifiable) ne crédite RIEN.
   if (paused || mode !== "earning" || !currentAd || !injected || !userIsPlausiblyWatching()) {
+    visibleMs = 0;
+    return;
+  }
+
+  // Démarrage de claude : on ne facture pas (accueil + saisie du 1er prompt, pas de spinner).
+  if (Date.now() < startupGraceUntil) {
     visibleMs = 0;
     return;
   }
