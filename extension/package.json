@@ -2,7 +2,7 @@
   "name": "bakchich",
   "displayName": "Bakchich, sois payé pendant que ça tourne",
   "description": "Une ligne sponsorisée dans le spinner de Claude Code pendant qu'il réfléchit. Tu touches 50 % des revenus pub. Opt-in, transparent, réversible en un clic.",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "publisher": "bakchich",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "media/icon.png",
