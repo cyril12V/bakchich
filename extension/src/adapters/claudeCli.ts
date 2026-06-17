@@ -25,7 +25,30 @@ function claudeDir(): string {
 const settingsPath = () => path.join(claudeDir(), "settings.json");
 const backupPath = () => path.join(claudeDir(), ".bakchich-spinner-backup.json");
 
-type ClaudeSettings = Record<string, unknown> & { spinnerVerbs?: string[] };
+/**
+ * Depuis Claude Code v2.1.x, `spinnerVerbs` n'est plus un tableau de chaînes mais
+ * un OBJET { mode, verbs }. mode "replace" => seul notre verbe s'affiche (la pub).
+ * Claude Code ajoute lui-même les "…" en fin de ligne.
+ */
+type SpinnerVerbs = { mode: "replace" | "append"; verbs: string[] };
+type ClaudeSettings = Record<string, unknown> & { spinnerVerbs?: unknown };
+
+/** Forme exacte attendue par Claude Code pour n'afficher QUE la pub. */
+function adSpinner(adLine: string): SpinnerVerbs {
+  return { mode: "replace", verbs: [adLine] };
+}
+
+/** La pub demandée est-elle déjà en place, au format objet courant ? */
+function isAdInPlace(current: unknown, adLine: string): boolean {
+  if (!current || typeof current !== "object" || Array.isArray(current)) return false;
+  const sv = current as Partial<SpinnerVerbs>;
+  return (
+    sv.mode === "replace" &&
+    Array.isArray(sv.verbs) &&
+    sv.verbs.length === 1 &&
+    sv.verbs[0] === adLine
+  );
+}
 
 function readSettings(): ClaudeSettings | null {
   try {
@@ -82,13 +105,12 @@ export function injectAd(adLine: string): boolean {
   }
 
   // Idempotent : si la même pub est déjà en place, rien à faire.
-  const current = settings.spinnerVerbs;
-  if (Array.isArray(current) && current.length === 1 && current[0] === adLine) {
+  if (isAdInPlace(settings.spinnerVerbs, adLine)) {
     return true;
   }
 
   backupOriginal(settings);
-  settings.spinnerVerbs = [adLine];
+  settings.spinnerVerbs = adSpinner(adLine);
   return writeSettings(settings);
 }
 
@@ -104,7 +126,9 @@ export function restore(): boolean {
 
   try {
     const backup = JSON.parse(fs.readFileSync(backupPath(), "utf8"));
-    if (backup.hadSpinnerVerbs && Array.isArray(backup.spinnerVerbs)) {
+    // On restitue la valeur d'origine TELLE QUELLE (objet, tableau legacy, ou rien) :
+    // restore() doit rendre l'état exact d'avant l'injection, quel que soit le format.
+    if (backup.hadSpinnerVerbs) {
       settings.spinnerVerbs = backup.spinnerVerbs;
     } else {
       delete settings.spinnerVerbs; // l'utilisateur n'en avait pas → on retire le champ

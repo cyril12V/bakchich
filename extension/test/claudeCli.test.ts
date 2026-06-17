@@ -31,22 +31,27 @@ async function freshAdapter() {
 }
 
 describe("injection / restauration du spinner", () => {
-  it("injecte la pub et préserve les autres champs", async () => {
-    fs.writeFileSync(settingsPath(), JSON.stringify({ theme: "dark", spinnerVerbs: ["Percolating"] }));
+  it("injecte la pub au format objet { mode, verbs } et préserve les autres champs", async () => {
+    fs.writeFileSync(
+      settingsPath(),
+      JSON.stringify({ theme: "dark", spinnerVerbs: { mode: "append", verbs: ["Percolating"] } })
+    );
     const { injectAd } = await freshAdapter();
     expect(injectAd("Pub Test ↗")).toBe(true);
     const after = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
-    expect(after.spinnerVerbs).toEqual(["Pub Test ↗"]);
+    // Format attendu par Claude Code v2.1.x : un OBJET, pas un tableau.
+    expect(after.spinnerVerbs).toEqual({ mode: "replace", verbs: ["Pub Test ↗"] });
     expect(after.theme).toBe("dark"); // rien d'autre n'a bougé
   });
 
-  it("restaure les verbes d'origine exacts", async () => {
-    fs.writeFileSync(settingsPath(), JSON.stringify({ spinnerVerbs: ["A", "B"] }));
+  it("restaure le spinnerVerbs d'origine exact (objet)", async () => {
+    const original = { mode: "append", verbs: ["A", "B"] };
+    fs.writeFileSync(settingsPath(), JSON.stringify({ spinnerVerbs: original }));
     const { injectAd, restore } = await freshAdapter();
     injectAd("Pub");
     restore();
     const after = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
-    expect(after.spinnerVerbs).toEqual(["A", "B"]);
+    expect(after.spinnerVerbs).toEqual(original);
   });
 
   it("retire le champ si l'utilisateur n'en avait pas", async () => {
@@ -83,7 +88,7 @@ describe("injection / restauration du spinner", () => {
     const { injectAd, restore } = await freshAdapter();
     expect(injectAd("Pub auto ↗")).toBe(true);
     const after = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
-    expect(after.spinnerVerbs).toEqual(["Pub auto ↗"]);
+    expect(after.spinnerVerbs).toEqual({ mode: "replace", verbs: ["Pub auto ↗"] });
     // restore() doit rendre le fichier propre (pas de spinnerVerbs résiduel).
     restore();
     const restored = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
@@ -109,14 +114,14 @@ describe("injection / restauration du spinner", () => {
 
   it("restore() restitue des spinnerVerbs d'origine multiples exactement", async () => {
     // L'utilisateur avait déjà customisé ses verbes → on doit les rendre à l'identique.
-    const original = ["Percolating...", "Brewing...", "Thinking hard...", "Hallucinating..."];
+    const original = { mode: "append", verbs: ["Percolating", "Brewing", "Thinking hard"] };
     fs.writeFileSync(settingsPath(), JSON.stringify({ theme: "dark", spinnerVerbs: original }));
     const { injectAd, restore } = await freshAdapter();
 
     injectAd("Scaleway : le cloud européen ↗ bakch.li/c/abc");
-    // Vérification intermédiaire : la pub est bien en place.
+    // Vérification intermédiaire : la pub est bien en place, au format objet.
     const mid = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
-    expect(mid.spinnerVerbs).toEqual(["Scaleway : le cloud européen ↗ bakch.li/c/abc"]);
+    expect(mid.spinnerVerbs).toEqual({ mode: "replace", verbs: ["Scaleway : le cloud européen ↗ bakch.li/c/abc"] });
 
     restore();
     const after = JSON.parse(fs.readFileSync(settingsPath(), "utf8"));
