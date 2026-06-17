@@ -53,7 +53,9 @@ let currentAd: Ad | null = null;
 let paused = false;
 let previewText: string | null = null; // apercu avant connexion, non creditant
 let injected = false; // la pub est-elle REELLEMENT en place dans le spinner ?
-let activeClaudeRuns = 0; // nb de commandes `claude` en cours dans un terminal
+// Terminaux qui font tourner `claude` (→ nb de commandes claude actives dedans).
+// On ne credite que si le terminal ACTIF (celui regarde) est l'un d'eux.
+const claudeTerminals = new Map<vscode.Terminal, number>();
 let visibleMs = 0; // temps visible cumule pour l'impression en cours
 let lastDiag = "jamais"; // dernier resultat de poll (pour le diagnostic)
 
@@ -71,12 +73,19 @@ function log(msg: string): void {
   out?.appendLine(`[${ts}] ${msg}`);
 }
 
-/** Le spinner sponsorise n'existe que dans le terminal CLI, et SEULEMENT
- *  pendant qu'une commande `claude` tourne. On ne credite donc que dans ce cas :
- *  fenetre au premier plan + au moins une commande `claude` en cours d'execution.
- *  (La shell integration de VS Code nous renseigne sur les commandes lancees.) */
+/** Nombre total de commandes `claude` en cours, tous terminaux confondus. */
+function claudeRunCount(): number {
+  let n = 0;
+  for (const c of claudeTerminals.values()) n += c;
+  return n;
+}
+
+/** On ne credite QUE si la pub peut reellement etre vue : fenetre au premier plan
+ *  ET le terminal ACTIF (celui qui a le focus / regarde) est celui qui fait tourner
+ *  `claude`. Si tu bascules sur l'UI graphique ou un autre terminal, ca ne compte plus. */
 function userIsPlausiblyWatching(): boolean {
-  return vscode.window.state.focused && activeClaudeRuns > 0;
+  const active = vscode.window.activeTerminal;
+  return vscode.window.state.focused && !!active && claudeTerminals.has(active);
 }
 
 /** La ligne de commande lance-t-elle le CLI `claude` ? */
@@ -84,13 +93,14 @@ function isClaudeCommand(commandLine: string): boolean {
   return /(^|[\s/\\])claude(\s|$)/i.test(commandLine);
 }
 
-/** Branche la detection des commandes `claude` via la shell integration.
- *  Si l'API n'est pas dispo (vieux VS Code / integration desactivee),
- *  activeClaudeRuns reste a 0 → on ne credite pas (echec cote sur). */
+/** Branche la detection des commandes `claude` via la shell integration, en
+ *  retenant DANS QUEL terminal elles tournent. Si l'API n'est pas dispo (vieux
+ *  VS Code / integration desactivee), la map reste vide → aucun gain (echec sur). */
 function watchClaudeRuns(ctx: vscode.ExtensionContext): void {
+  type ShellExecEvent = { terminal?: vscode.Terminal; execution?: { commandLine?: { value?: string } } };
   const win = vscode.window as unknown as {
-    onDidStartTerminalShellExecution?: (cb: (e: { execution?: { commandLine?: { value?: string } } }) => void) => vscode.Disposable;
-    onDidEndTerminalShellExecution?: (cb: (e: { execution?: { commandLine?: { value?: string } } }) => void) => vscode.Disposable;
+    onDidStartTerminalShellExecution?: (cb: (e: ShellExecEvent) => void) => vscode.Disposable;
+    onDidEndTerminalShellExecution?: (cb: (e: ShellExecEvent) => void) => vscode.Disposable;
   };
   const onStart = win.onDidStartTerminalShellExecution;
   const onEnd = win.onDidEndTerminalShellExecution;
@@ -100,20 +110,20 @@ function watchClaudeRuns(ctx: vscode.ExtensionContext): void {
   }
   ctx.subscriptions.push(
     onStart((e) => {
-      if (isClaudeCommand(e.execution?.commandLine?.value ?? "")) {
-        activeClaudeRuns += 1;
-        log(`claude demarre dans un terminal (en cours: ${activeClaudeRuns}).`);
+      if (e.terminal && isClaudeCommand(e.execution?.commandLine?.value ?? "")) {
+        claudeTerminals.set(e.terminal, (claudeTerminals.get(e.terminal) ?? 0) + 1);
+        log(`claude demarre dans un terminal (sessions: ${claudeRunCount()}).`);
       }
     }),
     onEnd((e) => {
-      if (isClaudeCommand(e.execution?.commandLine?.value ?? "")) {
-        activeClaudeRuns = Math.max(0, activeClaudeRuns - 1);
+      if (e.terminal && isClaudeCommand(e.execution?.commandLine?.value ?? "")) {
+        const n = (claudeTerminals.get(e.terminal) ?? 0) - 1;
+        if (n > 0) claudeTerminals.set(e.terminal, n);
+        else claudeTerminals.delete(e.terminal);
       }
     }),
-    // Filet de securite : plus aucun terminal → plus aucune commande en cours.
-    vscode.window.onDidCloseTerminal(() => {
-      if (vscode.window.terminals.length === 0) activeClaudeRuns = 0;
-    })
+    // Filet de securite : un terminal ferme ne fait plus tourner claude.
+    vscode.window.onDidCloseTerminal((t) => claudeTerminals.delete(t))
   );
 }
 
@@ -395,7 +405,8 @@ async function diagnose(): Promise<void> {
   out.appendLine(`settings.json : ${_internals.settingsPath()}`);
   out.appendLine(`Backup actif  : ${_internals.backupPath()}`);
   out.appendLine(`Mode          : ${mode}`);
-  out.appendLine(`Claude actif  : ${activeClaudeRuns > 0 ? `oui (${activeClaudeRuns} en terminal)` : "non (aucune commande claude en cours → pas de gain)"}`);
+  out.appendLine(`Claude actif  : ${claudeRunCount() > 0 ? `oui (${claudeRunCount()} session(s))` : "non"}`);
+  out.appendLine(`Terminal regarde : ${userIsPlausiblyWatching() ? "oui (credite)" : "non (pas de gain)"}`);
   out.appendLine(`Dernier poll  : ${lastDiag}`);
   out.appendLine(`Device ID     : ${ctxRef.globalState.get<string>(DEVICE_KEY) ?? "n/d"}`);
   out.appendLine(`Pub en cours  : ${currentAd ? currentAd.campaignId : "aucune"}`);
