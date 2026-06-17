@@ -242,13 +242,20 @@ async function poll(): Promise<void> {
 }
 
 async function tick(): Promise<void> {
-  if (paused || mode !== "earning" || !currentAd || !injected) return;
-  if (!userIsPlausiblyWatching()) return;
+  // RÈGLE : affichage = paiement, pas d'affichage = pas de paiement.
+  // On n'accumule QUE pendant un affichage vérifié (pub injectée + commande
+  // `claude` en cours dans un terminal + fenêtre au premier plan), et de façon
+  // CONTINUE : toute interruption remet le compteur à zéro. Conséquence directe :
+  // l'UI graphique de Claude (affichage non vérifiable) ne crédite RIEN.
+  if (paused || mode !== "earning" || !currentAd || !injected || !userIsPlausiblyWatching()) {
+    visibleMs = 0;
+    return;
+  }
 
   visibleMs += TICK_MS;
   if (visibleMs < viewThresholdMs()) return;
 
-  // Seuil de visibilite atteint : on compte une impression.
+  // Seuil de visibilité atteint en continu : on compte une impression.
   visibleMs = 0;
   const token = await getToken(ctxRef);
   if (!token) return;
