@@ -59,7 +59,11 @@ export async function createCheckoutSession({ campaign, blocks, bidCents, advert
     ],
     // TVA FR auto : activer Stripe Tax dans le dashboard puis décommenter.
     // automatic_tax: { enabled: true },
-    metadata: { campaignId: campaign.id },
+    metadata: {
+      campaignId: campaign.id,
+      expectedCents: String(bidCents * blocks),
+      checkoutKind: "initial",
+    },
     success_url: `${baseSiteUrl}/annonceurs/espace?paid=1&campaign=${campaign.id}`,
     cancel_url: `${baseSiteUrl}/annonceurs/espace?canceled=1`,
   });
@@ -89,7 +93,13 @@ export async function createEditCheckoutSession({ campaign, diffCents, newBid, n
         },
       },
     ],
-    metadata: { campaignId: campaign.id, editBid: String(newBid), editBlocks: String(newBlocks) },
+    metadata: {
+      campaignId: campaign.id,
+      editBid: String(newBid),
+      editBlocks: String(newBlocks),
+      expectedCents: String(diffCents),
+      checkoutKind: "edit",
+    },
     success_url: `${baseSiteUrl}/annonceurs/espace?paid=1&campaign=${campaign.id}`,
     cancel_url: `${baseSiteUrl}/annonceurs/espace?canceled=1`,
   });

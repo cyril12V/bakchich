@@ -18,7 +18,7 @@ const tmpDb = path.join(os.tmpdir(), `bakchich-test-${crypto.randomUUID()}.db`);
 process.env.DB_PATH = tmpDb;
 
 const { db, now } = await import("../src/db.js");
-const { recordImpression, balanceOf, reservePayout, markPayoutPaid, markPayoutRejected } =
+const { recordImpression, recordClick, currentWinner, balanceOf, reservePayout, markPayoutPaid, markPayoutRejected } =
   await import("../src/auction.js");
 
 const RULES = { minPayoutCents: 1000, reviewThresholdCents: 10000 };
@@ -29,12 +29,12 @@ function makeUser() {
     .run(id, `${id}@t.dev`, "T", now());
   return id;
 }
-function makeCampaign(bidCents = 1000) {
+function makeCampaign(bidCents = 1000, blocks = 100) {
   const id = crypto.randomUUID().slice(0, 8);
   db.prepare(
     `INSERT INTO campaigns (id,advertiser_email,text,url,bid_cents,blocks,status,created_at)
      VALUES (?,?,?,?,?,?, 'active', ?)`
-  ).run(id, "a@t.dev", "pub", "https://x.dev", bidCents, 100, now());
+  ).run(id, "a@t.dev", "pub", "https://x.dev", bidCents, blocks, now());
   return db.prepare(`SELECT * FROM campaigns WHERE id=?`).get(id);
 }
 /** Crédite `cents` centimes à un user via N impressions (0.5¢ chacune à bid 1000). */
@@ -124,4 +124,14 @@ test("petit retrait après un 1er payé passe en auto (processing)", () => {
   assert.equal(r.ok, true);
   assert.equal(r.needsReview, false);
   assert.equal(r.status, "processing");
+});
+
+test("les clics consomment le budget équivalent à 50 impressions", () => {
+  const u = makeUser();
+  const c = makeCampaign(1000, 1);
+  for (let i = 0; i < 20; i++) recordClick(crypto.randomUUID(), u, c);
+  const after = db.prepare(`SELECT clicks, status FROM campaigns WHERE id=?`).get(c.id);
+  assert.equal(after.clicks, 20);
+  assert.equal(after.status, "exhausted");
+  assert.equal(currentWinner()?.id === c.id, false);
 });

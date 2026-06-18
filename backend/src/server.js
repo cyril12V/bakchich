@@ -29,7 +29,7 @@ import { db, now } from "./db.js";
 import {
   currentWinner, auctionQueue, leaderboard, recordImpression, recordClick,
   balanceOf, reservePayout, markPayoutPaid, markPayoutRejected, MIN_BID_CENTS,
-  IMPRESSIONS_PER_BLOCK,
+  IMPRESSIONS_PER_BLOCK, CLICK_MULTIPLIER,
 } from "./auction.js";
 import { checkImpression, checkClick, ipRateLimit } from "./antifraud.js";
 import {
@@ -57,6 +57,12 @@ if (process.env.NODE_ENV === "production" &&
   console.error("FATAL : ADMIN_SECRET non défini ou laissé à la valeur par défaut. Arrêt.");
   process.exit(1);
 }
+const ADMIN_IP_ALLOWLIST = new Set(
+  (process.env.ADMIN_IP_ALLOWLIST ?? "")
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean)
+);
 
 /* ---------- Webhook Stripe (corps BRUT, avant express.json) ---------- */
 // La vérification de signature exige le payload brut non parsé.
@@ -72,37 +78,56 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), (req, re
   const seen = db.prepare(`SELECT 1 FROM stripe_events WHERE id=?`).get(event.id);
   if (seen) return res.json({ received: true, duplicate: true });
 
-  db.transaction(() => {
-    db.prepare(`INSERT INTO stripe_events (id, processed_at) VALUES (?, ?)`).run(event.id, Date.now());
-    if (event.type === "checkout.session.completed") {
-      const md = event.data.object.metadata ?? {};
-      const campaignId = md.campaignId;
-      const editBid = md.editBid ? parseInt(md.editBid, 10) : null;
-      const editBlocks = md.editBlocks ? parseInt(md.editBlocks, 10) : null;
+  try {
+    db.transaction(() => {
+      db.prepare(`INSERT INTO stripe_events (id, processed_at) VALUES (?, ?)`).run(event.id, Date.now());
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        const md = event.data.object.metadata ?? {};
+        const campaignId = md.campaignId;
+        const editBid = md.editBid ? parseInt(md.editBid, 10) : null;
+        const editBlocks = md.editBlocks ? parseInt(md.editBlocks, 10) : null;
+        const expectedCents = md.expectedCents ? parseInt(md.expectedCents, 10) : null;
 
-      if (campaignId && Number.isInteger(editBid) && Number.isInteger(editBlocks)) {
-        // Paiement de la DIFFÉRENCE (modification) → on applique le nouveau bid/blocs.
-        const c = db.prepare(`SELECT text, url, status, impressions FROM campaigns WHERE id=?`).get(campaignId);
-        if (c) {
-          const verdict = autoModerate(c.text, c.url);
-          const status = verdict === "rejected"
-            ? "rejected"
-            : c.status === "paused"
-              ? "paused"
-              : editBlocks * IMPRESSIONS_PER_BLOCK > c.impressions ? "active" : "exhausted";
-          db.prepare(`UPDATE campaigns SET bid_cents=?, blocks=?, paid_cents=?, status=? WHERE id=?`)
-            .run(editBid, editBlocks, editBid * editBlocks, status, campaignId);
+        if (
+          session.payment_status !== "paid" ||
+          session.currency !== "eur" ||
+          !Number.isInteger(expectedCents) ||
+          session.amount_total !== expectedCents
+        ) {
+          throw new Error("stripe_session_amount_mismatch");
         }
-      } else if (campaignId) {
-        // Paiement INITIAL → modération AUTOMATIQUE (diffusion immédiate sauf contenu interdit).
-        const c = db.prepare(`SELECT text, url FROM campaigns WHERE id=? AND status='pending_payment'`).get(campaignId);
-        if (c) {
-          db.prepare(`UPDATE campaigns SET status=? WHERE id=? AND status='pending_payment'`)
-            .run(autoModerate(c.text, c.url), campaignId);
+
+        if (campaignId && Number.isInteger(editBid) && Number.isInteger(editBlocks)) {
+          // Paiement de la DIFFÉRENCE (modification) → on applique le nouveau bid/blocs.
+          const c = db.prepare(`SELECT text, url, status, impressions, paid_cents FROM campaigns WHERE id=?`).get(campaignId);
+          if (c) {
+            const expectedDiff = editBid * editBlocks - (c.paid_cents ?? 0);
+            if (expectedDiff !== expectedCents) throw new Error("stripe_edit_amount_mismatch");
+            const verdict = autoModerate(c.text, c.url);
+            const status = verdict === "rejected"
+              ? "rejected"
+              : c.status === "paused"
+                ? "paused"
+                : "pending";
+            db.prepare(`UPDATE campaigns SET bid_cents=?, blocks=?, paid_cents=?, status=? WHERE id=?`)
+              .run(editBid, editBlocks, editBid * editBlocks, status, campaignId);
+          }
+        } else if (campaignId) {
+          // Paiement INITIAL → review avant diffusion (sauf rejet automatique évident).
+          const c = db.prepare(`SELECT text, url, bid_cents, blocks FROM campaigns WHERE id=? AND status='pending_payment'`).get(campaignId);
+          if (c) {
+            if (c.bid_cents * c.blocks !== expectedCents) throw new Error("stripe_initial_amount_mismatch");
+            const verdict = autoModerate(c.text, c.url);
+            db.prepare(`UPDATE campaigns SET status=? WHERE id=? AND status='pending_payment'`)
+              .run(verdict === "rejected" ? "rejected" : "pending", campaignId);
+          }
         }
       }
-    }
-  })();
+    })();
+  } catch (err) {
+    return res.status(400).json({ error: "webhook_validation_failed" });
+  }
   res.json({ received: true });
 });
 
@@ -123,7 +148,12 @@ const clickLimiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: tru
 /* ---------- helpers ---------- */
 
 function authUser(req) {
-  const token = (req.headers.authorization ?? "").replace("Bearer ", "");
+  const cookieToken = String(req.headers.cookie ?? "")
+    .split(";")
+    .map((v) => v.trim())
+    .find((v) => v.startsWith("bakchich_session="))
+    ?.slice("bakchich_session=".length);
+  const token = (req.headers.authorization ?? "").replace("Bearer ", "") || cookieToken || "";
   if (!token) return null;
   const session = db
     .prepare(`SELECT user_id FROM sessions WHERE token=? AND (expires_at IS NULL OR expires_at > ?)`)
@@ -131,6 +161,32 @@ function authUser(req) {
   if (!session) return null;
   const user = db.prepare(`SELECT * FROM users WHERE id=? AND banned=0`).get(session.user_id);
   return user ?? null;
+}
+
+function sessionCookie(token, expiresAt) {
+  const maxAge = Math.max(0, Math.floor((expiresAt - now()) / 1000));
+  const secure = SITE_URL.startsWith("https://") ? "; Secure" : "";
+  return `bakchich_session=${token}; Max-Age=${maxAge}; Path=/; HttpOnly; SameSite=Strict${cookieDomain()}${secure}`;
+}
+
+function clearSessionCookie() {
+  const secure = SITE_URL.startsWith("https://") ? "; Secure" : "";
+  return `bakchich_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict${cookieDomain()}${secure}`;
+}
+
+function cookieDomain() {
+  try {
+    const host = new URL(SITE_URL).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "localhost" || /^[\d.]+$/.test(host) || host.includes(":")) return "";
+    return `; Domain=.${host}`;
+  } catch {
+    return "";
+  }
+}
+
+function deviceIdFromReq(req) {
+  const id = String(req.headers["x-device-id"] ?? "");
+  return /^[a-f0-9-]{20,80}$/i.test(id) ? id : null;
 }
 
 function killswitchOn() {
@@ -221,6 +277,8 @@ app.post("/api/events", (req, res) => {
   if (!user) return res.status(401).json({ error: "unauthorized" });
   if (killswitchOn()) return res.json({ ok: false, reason: "killswitch" });
   if (ipRateLimit(req.ip)) return res.status(429).json({ error: "rate_limited" });
+  const deviceId = deviceIdFromReq(req);
+  if (!deviceId) return res.status(400).json({ error: "missing_device_id" });
 
   const { eventId, type, campaignId } = req.body ?? {};
   if (!eventId || type !== "impression" || !campaignId) {
@@ -237,10 +295,10 @@ app.post("/api/events", (req, res) => {
     return res.json({ ok: false, reason: "not_current_ad" });
   }
 
-  const refusal = checkImpression(user.id, req.ip);
+  const refusal = checkImpression(user.id, req.ip, deviceId);
   if (refusal) return res.json({ ok: false, reason: refusal });
 
-  const credit = recordImpression(eventId, user.id, winner);
+  const credit = recordImpression(eventId, user.id, winner, deviceId);
   res.json({ ok: true, creditCents: credit });
 });
 
@@ -274,8 +332,14 @@ app.get("/api/me/campaigns", (req, res) => {
 
 /** Déconnexion : invalide le token de session courant. */
 app.post("/api/me/logout", (req, res) => {
-  const token = (req.headers.authorization ?? "").replace("Bearer ", "");
+  const cookieToken = String(req.headers.cookie ?? "")
+    .split(";")
+    .map((v) => v.trim())
+    .find((v) => v.startsWith("bakchich_session="))
+    ?.slice("bakchich_session=".length);
+  const token = (req.headers.authorization ?? "").replace("Bearer ", "") || cookieToken || "";
   if (token) db.prepare(`DELETE FROM sessions WHERE token=?`).run(token);
+  res.setHeader("Set-Cookie", clearSessionCookie());
   res.json({ ok: true });
 });
 
@@ -318,7 +382,9 @@ app.get("/c/:campaignId", clickLimiter, (req, res) => {
          LIMIT 1`
       )
       .get(userId, campaign.id, now() - CLICK_ATTRIBUTION_WINDOW_MS);
-    if (user && sawIt && !checkClick(user.id, campaign.id)) {
+    const hasBudget = campaign.status === "active" &&
+      campaign.impressions + campaign.clicks * CLICK_MULTIPLIER < campaign.blocks * IMPRESSIONS_PER_BLOCK;
+    if (user && sawIt && hasBudget && !checkClick(user.id, campaign.id)) {
       recordClick(crypto.randomUUID(), user.id, campaign);
     }
   }
@@ -327,7 +393,7 @@ app.get("/c/:campaignId", clickLimiter, (req, res) => {
 
 /* ---------- Auth Google OAuth ---------- */
 
-const pendingAuth = new Map(); // state → { redirectPort?, web?, createdAt }
+const pendingAuth = new Map(); // state → { redirectPort?, web?, nonce?, createdAt }
 const PENDING_TTL_MS = 10 * 60 * 1000;
 
 app.get("/auth/google/start", (req, res) => {
@@ -339,11 +405,16 @@ app.get("/auth/google/start", (req, res) => {
   // Mode web ou extension. Pour l'extension : valider le port (1024–65535).
   const web = req.query.web === "1";
   let redirectPort = null;
+  let nonce = null;
   if (!web) {
     redirectPort = parseInt(req.query.redirect_port, 10);
     if (isNaN(redirectPort) || redirectPort < 1024 || redirectPort > 65535) {
       return res.status(400).send("Port de redirection invalide.");
     }
+    nonce = typeof req.query.nonce === "string" && /^[a-f0-9]{32,128}$/i.test(req.query.nonce)
+      ? req.query.nonce
+      : null;
+    if (!nonce) return res.status(400).send("Nonce invalide.");
   }
 
   // Destination web après login : LISTE BLANCHE stricte (le token revient dans le
@@ -352,7 +423,7 @@ app.get("/auth/google/start", (req, res) => {
   const next = ALLOWED_NEXT.has(req.query.next) ? req.query.next : "/me/";
 
   const state = crypto.randomUUID();
-  pendingAuth.set(state, { redirectPort, web, next, createdAt: now() });
+  pendingAuth.set(state, { redirectPort, web, nonce, next, createdAt: now() });
 
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID ?? "",
@@ -422,12 +493,13 @@ app.get("/auth/google/callback", async (req, res) => {
       .run(sessionToken, user.id, now(), expiresAt);
 
     if (ctx.web) {
-      // Web : token dans le fragment (#) → jamais envoyé au serveur ni loggé.
+      // Web : cookie HttpOnly → le token n'est pas accessible au JavaScript.
       // ctx.next = destination (/me/ pour les devs, /annonceurs/espace pour les annonceurs).
-      return res.redirect(`${SITE_URL}${ctx.next}#token=${sessionToken}`);
+      res.setHeader("Set-Cookie", sessionCookie(sessionToken, expiresAt));
+      return res.redirect(`${SITE_URL}${ctx.next}#login=1`);
     }
     // Retour vers l'extension (mini-serveur localhost)
-    res.redirect(`http://127.0.0.1:${ctx.redirectPort}/?token=${sessionToken}`);
+    res.redirect(`http://127.0.0.1:${ctx.redirectPort}/?token=${sessionToken}&nonce=${ctx.nonce}`);
   } catch {
     if (ctx.web) return res.redirect(`${SITE_URL}${ctx.next}#error=auth`);
     res.redirect(`http://127.0.0.1:${ctx.redirectPort}/`);
@@ -486,11 +558,11 @@ app.post("/api/campaigns", async (req, res) => {
   const id = crypto.randomUUID().slice(0, 8);
   const campaign = { id, text, url };
   const ownerId = owner?.id ?? null;
-  // Modération AUTOMATIQUE : diffusion immédiate sauf contenu interdit.
+  // Modération automatique minimale : rejet immédiat des contenus manifestement interdits.
   const verdict = autoModerate(text, url); // "active" | "rejected"
 
   // Avec Stripe : on encaisse AVANT de diffuser. 'pending_payment' jusqu'au webhook,
-  // qui applique ensuite la modération auto (→ active ou rejected).
+  // qui bascule ensuite en attente de review manuelle (ou rejet automatique).
   if (stripeConfigured()) {
     db.prepare(
       `INSERT INTO campaigns (id,advertiser_email,advertiser_user_id,text,url,bid_cents,blocks,brand_name,brand_icon,show_on_leaderboard,paid_cents,status,created_at)
@@ -521,10 +593,11 @@ app.post("/api/campaigns", async (req, res) => {
 });
 
 /** Statut résultant d'une campagne après édition (re-modération + budget restant). */
-function resolvedStatus(verdict, prevStatus, blocks, impressions) {
+function resolvedStatus(verdict, prevStatus, blocks, impressions, clicks) {
   if (verdict === "rejected") return "rejected";
   if (prevStatus === "paused") return "paused";
-  return blocks * IMPRESSIONS_PER_BLOCK > impressions ? "active" : "exhausted";
+  const served = impressions + clicks * CLICK_MULTIPLIER;
+  return blocks * IMPRESSIONS_PER_BLOCK > served ? "active" : "exhausted";
 }
 
 /** Modifier une campagne existante. Augmentation de bid/blocs → paiement de la différence. */
@@ -555,7 +628,8 @@ app.post("/api/campaigns/:id/edit", async (req, res) => {
   if (!isValidCampaignUrl(url)) return res.status(400).json({ error: "https_only" });
   if (!Number.isInteger(newBid) || newBid < MIN_BID_CENTS) return res.status(400).json({ error: "min_bid_1_euro" });
   if (!Number.isInteger(newBlocks) || newBlocks < 1) return res.status(400).json({ error: "blocks_min_1" });
-  if (newBlocks * IMPRESSIONS_PER_BLOCK < campaign.impressions) return res.status(400).json({ error: "blocks_below_served" });
+  const servedEquivalent = campaign.impressions + campaign.clicks * CLICK_MULTIPLIER;
+  if (newBlocks * IMPRESSIONS_PER_BLOCK < servedEquivalent) return res.status(400).json({ error: "blocks_below_served" });
 
   let brandIcon = campaign.brand_icon;
   if (req.body?.brandIcon !== undefined && req.body.brandIcon !== null) {
@@ -587,7 +661,7 @@ app.post("/api/campaigns/:id/edit", async (req, res) => {
   // Pas d'augmentation (ou bid/blocs en baisse) → tout appliqué tout de suite.
   // On NE rembourse PAS : paid_cents reste au max déjà payé.
   const newPaid = Math.max(campaign.paid_cents ?? 0, newCost);
-  const status = resolvedStatus(verdict, campaign.status, newBlocks, campaign.impressions);
+  const status = resolvedStatus(verdict, campaign.status, newBlocks, campaign.impressions, campaign.clicks);
   db.prepare(
     `UPDATE campaigns SET text=?, url=?, brand_name=?, brand_icon=?, show_on_leaderboard=?, bid_cents=?, blocks=?, paid_cents=?, status=? WHERE id=?`
   ).run(text, url, brandName, brandIcon, showOnLeaderboard, newBid, newBlocks, newPaid, status, campaign.id);
@@ -676,6 +750,12 @@ app.post("/api/me/payout", async (req, res) => {
 /* ---------- Admin ---------- */
 
 function requireAdmin(req, res, next) {
+  if (ADMIN_IP_ALLOWLIST.size > 0) {
+    const ip = String(req.ip ?? "").replace(/^::ffff:/, "");
+    if (!ADMIN_IP_ALLOWLIST.has(ip)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+  }
   const provided = String(req.headers["x-admin-secret"] ?? "");
   const a = Buffer.from(provided);
   const b = Buffer.from(ADMIN_SECRET);
@@ -685,9 +765,15 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function auditAdmin(req, action, detail = {}) {
+  db.prepare(`INSERT INTO admin_audit (id, action, ip, detail, created_at) VALUES (?, ?, ?, ?, ?)`)
+    .run(crypto.randomUUID(), action, req.ip ?? null, JSON.stringify(detail), now());
+}
+
 app.post("/admin/killswitch", requireAdmin, (req, res) => {
   const on = req.body?.on === true;
   db.prepare(`UPDATE config SET value=? WHERE key='killswitch'`).run(on ? "1" : "0");
+  auditAdmin(req, "killswitch", { on });
   res.json({ ok: true, killswitch: on });
 });
 
@@ -697,6 +783,7 @@ app.post("/admin/moderate", requireAdmin, (req, res) => {
     return res.status(400).json({ error: "bad_decision" });
   }
   db.prepare(`UPDATE campaigns SET status=? WHERE id=?`).run(decision, campaignId);
+  auditAdmin(req, "moderate_campaign", { campaignId, decision });
   res.json({ ok: true });
 });
 
@@ -739,6 +826,7 @@ app.post("/admin/payouts/approve", requireAdmin, async (req, res) => {
       amountCents: payout.amount_cents, destination: user.stripe_account_id, payoutId,
     });
     markPayoutPaid(payoutId, ref);
+    auditAdmin(req, "approve_payout", { payoutId });
     res.json({ ok: true, status: "paid" });
   } catch {
     markPayoutRejected(payoutId); // libère la réserve, le dev pourra réessayer
@@ -754,6 +842,7 @@ app.post("/admin/payouts/reject", requireAdmin, (req, res) => {
     return res.status(400).json({ error: "not_pending_review" });
   }
   markPayoutRejected(payoutId);
+  auditAdmin(req, "reject_payout", { payoutId });
   res.json({ ok: true, status: "rejected" });
 });
 

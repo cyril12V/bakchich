@@ -31,8 +31,8 @@ export function currentWinner() {
     .prepare(
       `SELECT * FROM campaigns
        WHERE status = 'active'
-         AND impressions < blocks * ?
-       ORDER BY bid_cents DESC, impressions ASC, created_at ASC
+         AND (impressions + clicks * ${CLICK_MULTIPLIER}) < blocks * ?
+       ORDER BY bid_cents DESC, (impressions + clicks * ${CLICK_MULTIPLIER}) ASC, created_at ASC
        LIMIT 1`
     )
     .get(IMPRESSIONS_PER_BLOCK);
@@ -43,15 +43,16 @@ export function auctionQueue() {
   return db
     .prepare(
       `SELECT id, text, brand_name, bid_cents, blocks, impressions, created_at,
-              (blocks * ? - impressions) AS impressions_left
+              clicks,
+              (blocks * ? - (impressions + clicks * ${CLICK_MULTIPLIER})) AS impressions_left
        FROM campaigns
-       WHERE status = 'active' AND impressions < blocks * ?
+       WHERE status = 'active' AND (impressions + clicks * ${CLICK_MULTIPLIER}) < blocks * ?
        ORDER BY bid_cents DESC, created_at ASC`
     )
     .all(IMPRESSIONS_PER_BLOCK, IMPRESSIONS_PER_BLOCK);
 }
 
-/** Leaderboard public des marques : total dépensé = impressions servies × prix d'impression. */
+/** Leaderboard public des marques : total dépensé = impressions + clics convertis en équivalent impressions. */
 export function leaderboard(limit = 20) {
   // On NE retourne PAS brand_icon (data URL jusqu'à ~512 Ko) : route publique sans
   // auth, ça gonflerait la réponse à plusieurs Mo et ouvrirait un DoS applicatif.
@@ -59,10 +60,12 @@ export function leaderboard(limit = 20) {
     .prepare(
       `SELECT brand_name,
               MAX(CASE WHEN brand_icon IS NOT NULL THEN id END) AS icon_id,
-              SUM(impressions * (bid_cents * 1.0 / ?)) AS spent_cents,
+              SUM((impressions + clicks * ${CLICK_MULTIPLIER}) * (bid_cents * 1.0 / ?)) AS spent_cents,
               SUM(impressions) AS impressions
        FROM campaigns
-       WHERE show_on_leaderboard = 1 AND brand_name IS NOT NULL AND impressions > 0
+       WHERE show_on_leaderboard = 1
+         AND brand_name IS NOT NULL
+         AND (impressions > 0 OR clicks > 0)
        GROUP BY brand_name
        ORDER BY spent_cents DESC
        LIMIT ?`
@@ -72,18 +75,18 @@ export function leaderboard(limit = 20) {
 }
 
 /** Enregistre une impression : incrémente la campagne + crédite le dev. */
-export function recordImpression(eventId, userId, campaign) {
+export function recordImpression(eventId, userId, campaign, deviceId = null) {
   const credit = impressionPriceCents(campaign) * DEV_SHARE;
   const tx = db.transaction(() => {
     db.prepare(
-      `INSERT INTO events (event_id, user_id, campaign_id, type, credit_cents, created_at)
-       VALUES (?, ?, ?, 'impression', ?, ?)`
-    ).run(eventId, userId, campaign.id, credit, now());
+      `INSERT INTO events (event_id, user_id, campaign_id, type, credit_cents, device_id, created_at)
+       VALUES (?, ?, ?, 'impression', ?, ?, ?)`
+    ).run(eventId, userId, campaign.id, credit, deviceId, now());
     db.prepare(`UPDATE campaigns SET impressions = impressions + 1 WHERE id = ?`).run(campaign.id);
     // Budget épuisé → la campagne sort de l'enchère.
     db.prepare(
       `UPDATE campaigns SET status = 'exhausted'
-       WHERE id = ? AND impressions >= blocks * ${IMPRESSIONS_PER_BLOCK}`
+       WHERE id = ? AND (impressions + clicks * ${CLICK_MULTIPLIER}) >= blocks * ${IMPRESSIONS_PER_BLOCK}`
     ).run(campaign.id);
   });
   tx();
@@ -99,6 +102,10 @@ export function recordClick(eventId, userId, campaign) {
        VALUES (?, ?, ?, 'click', ?, ?)`
     ).run(eventId, userId, campaign.id, credit, now());
     db.prepare(`UPDATE campaigns SET clicks = clicks + 1 WHERE id = ?`).run(campaign.id);
+    db.prepare(
+      `UPDATE campaigns SET status = 'exhausted'
+       WHERE id = ? AND (impressions + clicks * ${CLICK_MULTIPLIER}) >= blocks * ${IMPRESSIONS_PER_BLOCK}`
+    ).run(campaign.id);
   });
   tx();
   return credit;

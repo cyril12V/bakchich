@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { CampaignForm } from "@/components/forms/CampaignForm";
 import {
   getToken,
-  setToken,
+  markCookieSession,
   clearToken,
   getRole,
   setRole,
@@ -595,13 +595,12 @@ export function AnnonceursEspacePage() {
   /* Traitement du hash de retour OAuth */
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.startsWith("#token=")) {
-      const t = hash.slice(7);
-      setToken(t);
+    if (hash === "#login=1") {
+      markCookieSession();
       // Connexion DEPUIS l'espace annonceur → contexte annonceur.
       setRole("advertiser");
       setRoleState("advertiser");
-      setTokenState(t);
+      setTokenState(getToken());
       history.replaceState(null, "", window.location.pathname);
     } else if (hash === "#error=auth") {
       setAuthError(true);

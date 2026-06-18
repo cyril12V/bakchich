@@ -26,6 +26,7 @@ const MIN_TICK_INTERVAL_MS = 4500;
 // on considère que c'est une ferme : les comptes marginaux ne sont plus crédités (les
 // premiers, eux, continuent normalement → on ne plafonne pas les gains légitimes).
 const MAX_ACCOUNTS_PER_IP_PER_DAY = 20;
+const MAX_ACCOUNTS_PER_DEVICE_PER_DAY = 3;
 
 function todayStart() {
   const d = new Date();
@@ -34,11 +35,18 @@ function todayStart() {
 }
 
 /** @returns {string|null} null si OK, sinon la raison du refus */
-export function checkImpression(userId, ip) {
+export function checkImpression(userId, ip, deviceId) {
   const last = db
     .prepare(`SELECT MAX(created_at) t FROM events WHERE user_id=? AND type='impression'`)
     .get(userId).t;
   if (last && now() - last < MIN_TICK_INTERVAL_MS) return "too_fast";
+
+  if (deviceId) {
+    const lastDevice = db
+      .prepare(`SELECT MAX(created_at) t FROM events WHERE device_id=? AND type='impression'`)
+      .get(deviceId).t;
+    if (lastDevice && now() - lastDevice < MIN_TICK_INTERVAL_MS) return "device_too_fast";
+  }
 
   // Anti multi-comptes : si N autres comptes gagnent déjà depuis cette IP aujourd'hui,
   // on refuse ce compte supplémentaire (les premiers ne sont pas impactés).
@@ -49,6 +57,15 @@ export function checkImpression(userId, ip) {
       .get(ip, day, userId).c;
     if (others >= MAX_ACCOUNTS_PER_IP_PER_DAY) return "ip_farm";
     db.prepare(`INSERT OR IGNORE INTO ip_accounts (ip, user_id, day) VALUES (?,?,?)`).run(ip, userId, day);
+  }
+  if (deviceId) {
+    const day = todayStart();
+    const others = db
+      .prepare(`SELECT COUNT(*) c FROM device_accounts WHERE device_id=? AND day=? AND user_id != ?`)
+      .get(deviceId, day, userId).c;
+    if (others >= MAX_ACCOUNTS_PER_DEVICE_PER_DAY) return "device_farm";
+    db.prepare(`INSERT OR IGNORE INTO device_accounts (device_id, user_id, day) VALUES (?,?,?)`)
+      .run(deviceId, userId, day);
   }
   return null; // pas de plafond de gains (impressions illimitées)
 }

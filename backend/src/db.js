@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS events (
   campaign_id  TEXT NOT NULL REFERENCES campaigns(id),
   type         TEXT NOT NULL CHECK (type IN ('impression','click')),
   credit_cents REAL NOT NULL,              -- part du dev (50 %)
+  device_id    TEXT,
   created_at   INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_events_user_time ON events(user_id, created_at);
@@ -68,6 +69,14 @@ CREATE TABLE IF NOT EXISTS payouts (
   status       TEXT NOT NULL DEFAULT 'pending_review',
                -- pending_review (review manuelle) | paid (viré) | rejected (annulé, libère la réserve)
   created_at   INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id         TEXT PRIMARY KEY,
+  action     TEXT NOT NULL,
+  ip         TEXT,
+  detail     TEXT,
+  created_at INTEGER NOT NULL
 );
 
 -- Config clé/valeur : kill-switch, etc.
@@ -106,6 +115,7 @@ ensureColumn("campaigns", "advertiser_user_id", "TEXT"); // compte annonceur (si
 // Montant total déjà PAYÉ pour la campagne (en centimes) : sert au calcul de la
 // différence lors d'une modification (augmentation de bid/blocs).
 ensureColumn("campaigns", "paid_cents", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("events", "device_id", "TEXT");
 
 // Détection multi-comptes par IP (anti-ferme de bots) : on note les couples
 // (ip, user, jour) distincts. Un vrai bureau partage une IP avec quelques devs ;
@@ -118,6 +128,14 @@ CREATE TABLE IF NOT EXISTS ip_accounts (
   PRIMARY KEY (ip, user_id, day)
 );
 CREATE INDEX IF NOT EXISTS idx_ip_accounts_day ON ip_accounts(ip, day);
+
+CREATE TABLE IF NOT EXISTS device_accounts (
+  device_id TEXT NOT NULL,
+  user_id   TEXT NOT NULL,
+  day       INTEGER NOT NULL,
+  PRIMARY KEY (device_id, user_id, day)
+);
+CREATE INDEX IF NOT EXISTS idx_device_accounts_day ON device_accounts(device_id, day);
 `);
 
 export const now = () => Date.now();

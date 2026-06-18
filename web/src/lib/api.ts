@@ -3,8 +3,9 @@
 export const VS_CODE_EXTENSION_URL =
   "https://marketplace.visualstudio.com/items?itemName=bakchich.bakchich";
 
-/** Clé localStorage pour le token dev */
+/** Clé localStorage : marqueur de session web. Le vrai token web est en cookie HttpOnly. */
 export const TOKEN_KEY = "bakchich.token";
+const COOKIE_SESSION_MARKER = "__cookie_session__";
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -12,6 +13,10 @@ export function getToken(): string | null {
 
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function markCookieSession(): void {
+  localStorage.setItem(TOKEN_KEY, COOKIE_SESSION_MARKER);
 }
 
 export function clearToken(): void {
@@ -72,7 +77,7 @@ async function authFetch(
     "Content-Type": "application/json",
     ...(init?.headers as Record<string, string>),
   };
-  if (token) {
+  if (token && token !== COOKIE_SESSION_MARKER) {
     headers["Authorization"] = `Bearer ${token}`;
   }
   const response = await fetch(input, { ...init, headers });
@@ -233,7 +238,7 @@ export async function createCampaign(
   // son compte (et apparait dans son espace). Sinon, création anonyme par email.
   const token = getToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token && token !== COOKIE_SESSION_MARKER) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch("/api/campaigns", {
     method: "POST",
     headers,
@@ -255,7 +260,7 @@ export async function editCampaign(
 ): Promise<CampaignResponse> {
   const token = getToken();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token && token !== COOKIE_SESSION_MARKER) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`/api/campaigns/${encodeURIComponent(id)}/edit`, {
     method: "POST",
     headers,

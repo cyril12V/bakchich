@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import {
   getToken,
-  setToken,
+  markCookieSession,
   clearToken,
   getRole,
   setRole,
@@ -845,13 +845,12 @@ export function MePage() {
   /* Traitement du hash de retour OAuth */
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.startsWith("#token=")) {
-      const t = hash.slice(7);
-      setToken(t);
+    if (hash === "#login=1") {
+      markCookieSession();
       // Connexion DEPUIS l'espace dev → contexte développeur.
       setRole("dev");
       setRoleState("dev");
-      setTokenState(t);
+      setTokenState(getToken());
       history.replaceState(null, "", window.location.pathname);
     } else if (hash === "#error=auth") {
       setAuthError(true);

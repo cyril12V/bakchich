@@ -13,6 +13,7 @@
  */
 import * as vscode from "vscode";
 import * as http from "http";
+import * as crypto from "crypto";
 import { apiUrl } from "./api";
 
 const TOKEN_KEY = "bakchich.token";
@@ -54,6 +55,7 @@ function resultPage(ok: boolean): string {
  */
 export async function signIn(ctx: vscode.ExtensionContext): Promise<string | null> {
   return new Promise((resolve) => {
+    const nonce = crypto.randomBytes(24).toString("hex");
     let settled = false;
     const finish = (token: string | null) => {
       if (settled) return;
@@ -70,9 +72,11 @@ export async function signIn(ctx: vscode.ExtensionContext): Promise<string | nul
     const server = http.createServer(async (req, res) => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const token = url.searchParams.get("token");
+      const returnedNonce = url.searchParams.get("nonce");
+      const ok = Boolean(token && returnedNonce === nonce);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(resultPage(Boolean(token)));
-      if (token) {
+      res.end(resultPage(ok));
+      if (ok && token) {
         await ctx.secrets.store(TOKEN_KEY, token);
         finish(token);
       } else {
@@ -88,7 +92,7 @@ export async function signIn(ctx: vscode.ExtensionContext): Promise<string | nul
       const addr = server.address();
       const port = typeof addr === "object" && addr ? addr.port : 0;
       if (!port) return finish(null);
-      const target = `${apiUrl()}/auth/google/start?redirect_port=${port}`;
+      const target = `${apiUrl()}/auth/google/start?redirect_port=${port}&nonce=${nonce}`;
       void vscode.env.openExternal(vscode.Uri.parse(target)).then(
         (opened) => {
           if (!opened) finish(null); // l'utilisateur a refusé l'ouverture du navigateur
