@@ -32,7 +32,7 @@ git init && git add . && git commit -m "Bakchich"
 git remote add origin https://github.com/TON-COMPTE/bakchich.git
 git push -u origin main
 ```
-Puis sur le VPS, tu cloneras dedans `/opt/bakchich`. Les mises à jour = `git push` chez toi puis `ops/deploy.sh` sur le VPS.
+Puis sur le VPS, tu cloneras dedans `/var/www/bakchich`. Les mises à jour = `git push` chez toi puis `ops/deploy.sh` sur le VPS.
 
 > Le `.gitignore` exclut déjà `.env`, les `*.db` et `node_modules` → aucun secret ne part sur GitHub.
 
@@ -66,19 +66,19 @@ scp C:/Users/cyril/Desktop/bakchich-prod.tar.gz  root@IP_DU_VPS:/tmp/
 # 1. Bootstrap du serveur (Node, nginx, certbot, pare-feu, utilisateur) : UNE fois
 sudo bash provision.sh        # (extrais d'abord ops/ ou clone le repo pour l'avoir)
 
-# 2. Mettre le code dans /opt/bakchich
+# 2. Mettre le code dans /var/www/bakchich
 #   : option git :
-sudo git clone https://github.com/TON-COMPTE/bakchich.git /opt/bakchich
+sudo git clone https://github.com/TON-COMPTE/bakchich.git /var/www/bakchich
 #   : option archive :
-sudo mkdir -p /opt/bakchich && sudo tar -xzf /tmp/bakchich-prod.tar.gz -C /opt/bakchich
+sudo mkdir -p /var/www/bakchich && sudo tar -xzf /tmp/bakchich-prod.tar.gz -C /var/www/bakchich
 
 # 3. Créer le fichier secret .env (et le remplir : cf. SETUP-MANUEL.md)
-sudo cp /opt/bakchich/ops/env.production.example /opt/bakchich/backend/.env
-sudo nano /opt/bakchich/backend/.env        # remplis Google, Stripe, ADMIN_SECRET, SITE_URL...
-sudo chmod 600 /opt/bakchich/backend/.env
+sudo cp /var/www/bakchich/ops/env.production.example /var/www/bakchich/backend/.env
+sudo nano /var/www/bakchich/backend/.env        # remplis Google, Stripe, ADMIN_SECRET, SITE_URL...
+sudo chmod 600 /var/www/bakchich/backend/.env
 
 # 4. Installer l'appli (nginx + systemd + deps + front + cron backup) : UNE fois
-sudo bash /opt/bakchich/ops/setup-app.sh
+sudo bash /var/www/bakchich/ops/setup-app.sh
 
 # 5. Activer le HTTPS (obligatoire en .dev)
 sudo certbot --nginx -d bakchich.dev -d www.bakchich.dev -d api.bakchich.dev
@@ -87,7 +87,7 @@ sudo certbot --nginx -d bakchich.dev -d www.bakchich.dev -d api.bakchich.dev
 curl -fsS https://api.bakchich.dev/health      # → {"ok":true}
 ```
 
-**Mises à jour ensuite** (après un `git push` ou un nouvel upload) : `sudo bash /opt/bakchich/ops/deploy.sh`.
+**Mises à jour ensuite** (après un `git push` ou un nouvel upload) : `sudo bash /var/www/bakchich/ops/deploy.sh`.
 
 ---
 

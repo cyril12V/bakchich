@@ -29,10 +29,10 @@ Architecture cible :
 L'extension VS Code, elle, tape directement `https://api.bakchich.dev`.
 
 > **Convention de chemins** (identique dans tous les fichiers `ops/`) :
-> - Code : `/opt/bakchich` (clone git)
-> - Backend : `/opt/bakchich/backend`
-> - `.env` : `/opt/bakchich/backend/.env`
-> - DB SQLite : `/opt/bakchich/backend/bakchich.db`
+> - Code : `/var/www/bakchich` (clone git)
+> - Backend : `/var/www/bakchich/backend`
+> - `.env` : `/var/www/bakchich/backend/.env`
+> - DB SQLite : `/var/www/bakchich/backend/bakchich.db`
 > - Site statique : `/var/www/bakchich`
 > - Utilisateur système : `bakchich`
 > - Port interne : `3939`
@@ -99,22 +99,22 @@ which node # doit afficher /usr/bin/node (chemin attendu par le service systemd)
 Compte dédié sans privilèges, sans shell de connexion :
 
 ```bash
-adduser --system --group --home /opt/bakchich --shell /usr/sbin/nologin bakchich
+adduser --system --group --home /var/www/bakchich --shell /usr/sbin/nologin bakchich
 ```
 
 ---
 
-## 4. Cloner le projet dans `/opt/bakchich`
+## 4. Cloner le projet dans `/var/www/bakchich`
 
 ```bash
-git clone <URL_DU_REPO> /opt/bakchich
-chown -R bakchich:bakchich /opt/bakchich
+git clone <URL_DU_REPO> /var/www/bakchich
+chown -R bakchich:bakchich /var/www/bakchich
 ```
 
 Installer les dépendances de prod :
 
 ```bash
-cd /opt/bakchich/backend
+cd /var/www/bakchich/backend
 sudo -u bakchich npm ci --omit=dev
 ```
 
@@ -129,10 +129,10 @@ sudo -u bakchich npm run seed   # crée la DB + données de test
 ## 5. Configurer le `.env` de production
 
 ```bash
-cp /opt/bakchich/ops/env.production.example /opt/bakchich/backend/.env
-nano /opt/bakchich/backend/.env        # remplir les vraies valeurs
-chmod 600 /opt/bakchich/backend/.env
-chown bakchich:bakchich /opt/bakchich/backend/.env
+cp /var/www/bakchich/ops/env.production.example /var/www/bakchich/backend/.env
+nano /var/www/bakchich/backend/.env        # remplir les vraies valeurs
+chmod 600 /var/www/bakchich/backend/.env
+chown bakchich:bakchich /var/www/bakchich/backend/.env
 ```
 
 À remplir impérativement :
@@ -167,28 +167,23 @@ dig +short api.bakchich.dev
 
 ---
 
-## 7. Site statique
+## 7. Site statique (front React / Vite)
 
-Créer le dossier servi par nginx et y copier le site.
+Le front est une app React buildée par Vite. nginx la sert **en place** depuis
+`/var/www/bakchich/web/dist` (pas de copie vers un webroot séparé).
 
-> **Hypothèse :** le repo place la landing dans `landing/`. On copie son contenu
-> à la **racine** de `/var/www/bakchich` (donc `index.html` à la racine), et les
-> pages `dashboard/`, `annonceurs/`, `legal/` en sous-dossiers du même répertoire.
-
-Pour le **premier déploiement** :
+Pour le **premier déploiement**, le build est fait par `ops/setup-app.sh`
+(étape 2). Si tu veux le faire à la main :
 
 ```bash
-mkdir -p /var/www/bakchich
-cp -r /opt/bakchich/landing/.     /var/www/bakchich/
-cp -r /opt/bakchich/dashboard     /var/www/bakchich/dashboard
-cp -r /opt/bakchich/annonceurs    /var/www/bakchich/annonceurs
-cp -r /opt/bakchich/legal         /var/www/bakchich/legal
-chown -R www-data:www-data /var/www/bakchich
+cd /var/www/bakchich/web
+npm ci
+npm run build                                  # génère web/dist (= root nginx)
+chown -R www-data:www-data /var/www/bakchich/web/dist
 ```
 
-> **Déploiements suivants :** inutile de refaire ces copies à la main :
-> `ops/deploy.sh` resynchronise automatiquement le front statique (landing +
-> dashboard + annonceurs + legal) vers `/var/www/bakchich` à chaque exécution.
+> **Déploiements suivants :** `ops/deploy.sh` rebuild `web/dist` en place et
+> remet les droits `www-data` à chaque exécution — aucune copie manuelle.
 
 ---
 
@@ -196,8 +191,8 @@ chown -R www-data:www-data /var/www/bakchich
 
 ```bash
 apt-get install -y nginx
-cp /opt/bakchich/ops/nginx/bakchich.dev.conf      /etc/nginx/sites-available/
-cp /opt/bakchich/ops/nginx/api.bakchich.dev.conf  /etc/nginx/sites-available/
+cp /var/www/bakchich/ops/nginx/bakchich.dev.conf      /etc/nginx/sites-available/
+cp /var/www/bakchich/ops/nginx/api.bakchich.dev.conf  /etc/nginx/sites-available/
 ln -sf /etc/nginx/sites-available/bakchich.dev.conf     /etc/nginx/sites-enabled/
 ln -sf /etc/nginx/sites-available/api.bakchich.dev.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default   # retire le vhost par défaut
@@ -238,7 +233,7 @@ certbot renew --dry-run
 ## 10. Service systemd
 
 ```bash
-cp /opt/bakchich/ops/systemd/bakchich-backend.service /etc/systemd/system/
+cp /var/www/bakchich/ops/systemd/bakchich-backend.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now bakchich-backend
 systemctl status bakchich-backend --no-pager
@@ -257,7 +252,7 @@ curl -fsS https://api.bakchich.dev/health   # via nginx + TLS
 ## 11. Cron de sauvegarde
 
 ```bash
-chmod +x /opt/bakchich/ops/backup-db.sh
+chmod +x /var/www/bakchich/ops/backup-db.sh
 mkdir -p /var/backups/bakchich
 chown bakchich:bakchich /var/backups/bakchich
 touch /var/log/bakchich-backup.log
@@ -270,7 +265,7 @@ crontab -u bakchich -e
 Ajouter la ligne :
 
 ```cron
-0 */6 * * * /opt/bakchich/ops/backup-db.sh >> /var/log/bakchich-backup.log 2>&1
+0 */6 * * * /var/www/bakchich/ops/backup-db.sh >> /var/log/bakchich-backup.log 2>&1
 ```
 
 > Penser à configurer la **copie hors-serveur** (rsync/scp/rclone) dans
@@ -293,7 +288,7 @@ Ajouter la ligne :
 Une fois tout en place, déployer une nouvelle version se résume à :
 
 ```bash
-/opt/bakchich/ops/deploy.sh
+/var/www/bakchich/ops/deploy.sh
 ```
 
 Le script fait : `git pull` → `npm ci --omit=dev` → restart backend →
@@ -327,7 +322,7 @@ Le script fait : `git pull` → `npm ci --omit=dev` → restart backend →
 ### Revenir à la version de code précédente
 
 ```bash
-cd /opt/bakchich
+cd /var/www/bakchich
 git log --oneline -n 5          # repérer le commit stable précédent
 git checkout <SHA_STABLE>       # ou: git reset --hard <SHA_STABLE>
 cd backend && sudo -u bakchich npm ci --omit=dev
@@ -343,10 +338,10 @@ curl -fsS https://api.bakchich.dev/health
 sudo systemctl stop bakchich-backend
 # Choisir la sauvegarde voulue dans /var/backups/bakchich/
 gunzip -c /var/backups/bakchich/bakchich-AAAA-MM-JJ_HH-MM-SS.db.gz \
-  > /opt/bakchich/backend/bakchich.db
+  > /var/www/bakchich/backend/bakchich.db
 # Retirer d'éventuels fichiers WAL/SHM périmés.
-rm -f /opt/bakchich/backend/bakchich.db-wal /opt/bakchich/backend/bakchich.db-shm
-chown bakchich:bakchich /opt/bakchich/backend/bakchich.db
+rm -f /var/www/bakchich/backend/bakchich.db-wal /var/www/bakchich/backend/bakchich.db-shm
+chown bakchich:bakchich /var/www/bakchich/backend/bakchich.db
 sudo systemctl start bakchich-backend
 curl -fsS https://api.bakchich.dev/health
 ```

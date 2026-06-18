@@ -28,10 +28,10 @@ echo "==> [4/6] Utilisateur applicatif 'bakchich'"
 id -u bakchich >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin bakchich
 
 echo "==> [5/6] Dossiers"
-mkdir -p /opt/bakchich /var/www/bakchich /var/backups/bakchich
+# Le code ET le webroot vivent sous /var/www/bakchich (web/dist servi en place).
+mkdir -p /var/www/bakchich /var/backups/bakchich
 touch /var/log/bakchich-backup.log
-chown -R bakchich:bakchich /opt/bakchich /var/backups/bakchich /var/log/bakchich-backup.log
-chown -R www-data:www-data /var/www/bakchich
+chown -R bakchich:bakchich /var/www/bakchich /var/backups/bakchich /var/log/bakchich-backup.log
 
 echo "==> [6/6] Pare-feu (ufw) : SSH + HTTP/HTTPS uniquement"
 ufw allow OpenSSH || true
@@ -44,8 +44,8 @@ cat <<'NEXT'
 ✅ Provisioning terminé.
 
 Étapes suivantes (voir docs/MISE-EN-PROD.md) :
-  1. Uploader le code dans /opt/bakchich (git clone OU archive).
-  2. Créer /opt/bakchich/backend/.env (à partir de ops/env.production.example).
-  3. Lancer : sudo bash /opt/bakchich/ops/setup-app.sh
+  1. Uploader le code dans /var/www/bakchich (git clone OU archive).
+  2. Créer /var/www/bakchich/backend/.env (à partir de ops/env.production.example).
+  3. Lancer : sudo bash /var/www/bakchich/ops/setup-app.sh
   4. SSL : sudo certbot --nginx -d bakchich.dev -d www.bakchich.dev -d api.bakchich.dev
 NEXT
