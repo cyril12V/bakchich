@@ -30,4 +30,4 @@ tar -czf "${OUT}" \
 
 echo "✅ Archive prête : $(cd .. && pwd)/bakchich-prod.tar.gz"
 echo "   Upload : scp bakchich-prod.tar.gz user@IP_VPS:/tmp/"
-echo "   Sur le VPS : sudo tar -xzf /tmp/bakchich-prod.tar.gz -C /opt/bakchich"
+echo "   Sur le VPS : sudo tar -xzf /tmp/bakchich-prod.tar.gz -C /var/www/bakchich"

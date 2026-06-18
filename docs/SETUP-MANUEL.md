@@ -102,7 +102,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
 > Tout est scripté. Le runbook détaillé est dans **`docs/DEPLOIEMENT.md`**. Résumé :
 
 1. Prends un VPS Ubuntu/Debian (Hetzner, Scaleway, OVH…). Note son **IP** → mets-la dans le DNS (§1).
-2. Connecte-toi en SSH, suis `docs/DEPLOIEMENT.md` : installe Node 20, clone le repo dans `/opt/bakchich`, crée l'utilisateur `bakchich`.
+2. Connecte-toi en SSH, suis `docs/DEPLOIEMENT.md` : installe Node 20, clone le repo dans `/var/www/bakchich`, crée l'utilisateur `bakchich`.
 3. Crée le fichier `.env` à partir de `ops/env.production.example` et **remplis-le** avec tout ce que tu as collecté ci-dessus :
    ```
    BASE_URL=https://api.bakchich.dev
@@ -110,7 +110,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
    GOOGLE_CLIENT_ID=...   GOOGLE_CLIENT_SECRET=...
    STRIPE_SECRET_KEY=...  STRIPE_WEBHOOK_SECRET=...
    ADMIN_SECRET=$(openssl rand -hex 32)   # génère un vrai secret, ne laisse JAMAIS la valeur par défaut
-   DB_PATH=/opt/bakchich/backend/bakchich.db
+   DB_PATH=/var/www/bakchich/backend/bakchich.db
    ```
 4. Installe les fichiers nginx + systemd (cf. runbook), lance **certbot** pour le SSL des 3 domaines.
 5. Lance `ops/deploy.sh` → il déploie le backend, synchronise le front et recharge nginx.
@@ -139,7 +139,7 @@ But : permettre « Se connecter avec Google » dans l'extension et sur le dashbo
 | `STRIPE_SECRET_KEY` | Stripe → API keys | 3.2 |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks | 3.3 |
 | `ADMIN_SECRET` | `openssl rand -hex 32` | 5 |
-| `DB_PATH` | fixe = `/opt/bakchich/backend/bakchich.db` | 5 |
+| `DB_PATH` | fixe = `/var/www/bakchich/backend/bakchich.db` | 5 |
 
 ## Ordre conseillé
 1. VPS (pour avoir l'IP) → 2. Domaine + DNS → 3. Google OAuth → 4. Stripe (test) → 5. Déploiement + certbot → 6. Test e2e complet → 7. Stripe live → 8. Publication extension → 9. Lancement 🚀

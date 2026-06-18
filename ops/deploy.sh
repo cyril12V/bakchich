@@ -3,12 +3,13 @@
 #  Bakchich : deploiement "une commande" (idempotent)
 #  -------------------------------------------------------------------------
 #  Usage (sur le VPS, en tant qu'utilisateur ayant sudo) :
-#      /opt/bakchich/ops/deploy.sh
+#      /var/www/bakchich/ops/deploy.sh
+#      (APP_DIR=/chemin/perso ./deploy.sh pour surcharger le chemin)
 #
 #  Ce que fait le script :
 #    1. Recupere le dernier code (git pull)
 #    2. Installe les deps de prod (npm ci --omit=dev)
-#    3. Synchronise le front statique vers /var/www/bakchich
+#    3. Build du front React, servi EN PLACE depuis web/dist (= root nginx)
 #    4. Redemarre le service backend
 #    5. Verifie et recharge nginx
 #    6. Affiche le statut + un health-check HTTPS
@@ -18,9 +19,10 @@
 set -euo pipefail
 
 # --- Chemins (coherents avec systemd / nginx / docs) -------------------------
-APP_DIR="/opt/bakchich"
+# APP_DIR surchargeable ; defaut = emplacement reel en prod (/var/www/bakchich).
+APP_DIR="${APP_DIR:-/var/www/bakchich}"
 BACKEND_DIR="${APP_DIR}/backend"
-WWW_DIR="/var/www/bakchich"
+WEB_DIST="${APP_DIR}/web/dist"   # root nginx (sert le build Vite en place)
 SERVICE="bakchich-backend"
 HEALTH_URL="https://api.bakchich.dev/health"
 
@@ -33,13 +35,11 @@ cd "${BACKEND_DIR}"
 # npm ci = install reproductible depuis package-lock.json. --omit=dev : pas de devDeps.
 npm ci --omit=dev
 
-echo "==> [3/6] Build du front React (Vite) + publication vers ${WWW_DIR}"
+echo "==> [3/6] Build du front React (Vite), servi en place depuis ${WEB_DIST}"
 cd "${APP_DIR}/web"
 npm ci
-npm run build                                     # genere web/dist
-sudo mkdir -p "${WWW_DIR}"
-sudo rsync -a --delete "${APP_DIR}/web/dist/" "${WWW_DIR}/"
-sudo chown -R www-data:www-data "${WWW_DIR}"
+npm run build                                     # genere web/dist (= root nginx)
+sudo chown -R www-data:www-data "${WEB_DIST}"
 
 echo "==> [4/6] Redemarrage du backend (${SERVICE})"
 sudo systemctl restart "${SERVICE}"
