@@ -2,7 +2,7 @@
   "name": "bakchich",
   "displayName": "Bakchich, sois payé pendant que ça tourne",
   "description": "Une ligne sponsorisée dans le spinner de ton outil de code. Tu touches 50 % des revenus pub. Opt-in, transparent, réversible en un clic.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "bakchich",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "media/icon.png",
@@ -34,9 +34,9 @@
         },
         "bakchich.viewThresholdSeconds": {
           "type": "number",
-          "default": 5,
+          "default": 15,
           "minimum": 1,
-          "maximum": 30,
+          "maximum": 60,
           "description": "Temps de visibilité cumulé (en secondes) qu'une pub doit atteindre avant d'être comptée comme « vue » et créditée."
         }
       }

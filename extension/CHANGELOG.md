@@ -4,6 +4,18 @@ Toutes les modifications notables de l'extension Bakchich sont documentées ici.
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 et le projet respecte le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [0.4.1] - 2026-06-18
+
+### Corrigé
+- **Crédit uniquement quand `claude` tourne vraiment** : on ne se fie plus au nom
+  du terminal. Un terminal nommé « claude » mais sans commande en cours (curseur
+  au prompt, pas de spinner) ne crédite plus rien. Fenêtre réduite / non
+  focalisée → aucun gain.
+
+### Modifié
+- Cadence par défaut : 1 impression comptée toutes les **15 s** de visibilité
+  continue (avant 5 s). Réglable de 1 à 60 s via `bakchich.viewThresholdSeconds`.
+
 ## [0.4.0] - 2026-06-18
 
 Première version finale stabilisée, prête pour publication.
