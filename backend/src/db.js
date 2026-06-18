@@ -107,6 +107,7 @@ function ensureColumn(table, column, definition) {
   }
 }
 ensureColumn("users", "stripe_account_id", "TEXT");
+ensureColumn("users", "click_code", "TEXT"); // code court public pour les liens de clic (ex. bakchich.dev/go/<id>/<code>)
 ensureColumn("sessions", "expires_at", "INTEGER");
 ensureColumn("campaigns", "brand_name", "TEXT");
 ensureColumn("campaigns", "brand_icon", "TEXT"); // data URL (≤ 512 Ko)
@@ -136,6 +137,9 @@ CREATE TABLE IF NOT EXISTS device_accounts (
   PRIMARY KEY (device_id, user_id, day)
 );
 CREATE INDEX IF NOT EXISTS idx_device_accounts_day ON device_accounts(device_id, day);
+
+-- Code de clic unique par utilisateur (NULLs multiples autorisés en SQLite).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_click_code ON users(click_code);
 `);
 
 export const now = () => Date.now();
