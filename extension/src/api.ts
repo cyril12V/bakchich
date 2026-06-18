@@ -15,6 +15,10 @@ export interface Ad {
   campaignId: string;
   /** Ligne affichée dans le spinner, ex: "Scaleway : le cloud européen ↗ …/c/abc?u=…" */
   line: string;
+  /** URL trackee du clic. Permet de rendre le nom de marque cliquable dans VS Code. */
+  clickUrl?: string;
+  /** Texte affiche et cliquable pour le lien sponsorise. */
+  linkLabel?: string;
 }
 
 export interface ServerState {

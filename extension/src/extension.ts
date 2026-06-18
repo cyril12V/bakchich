@@ -1,7 +1,7 @@
 /**
  * Bakchich, extension VS Code.
  *
- * Principe : pendant que Claude Code reflechit, son spinner affiche une ligne
+ * Principe : pendant que l'outil de code reflechit, son spinner affiche une ligne
  * sponsorisee a la place d'un verbe. Tu touches 50 % des revenus pub.
  *
  * Garanties :
@@ -82,17 +82,22 @@ function claudeRunCount(): number {
   return n;
 }
 
-/** On ne credite QUE si la pub peut reellement etre vue : fenetre au premier plan
- *  ET le terminal ACTIF (celui qui a le focus / regarde) est celui qui fait tourner
- *  `claude`. Si tu bascules sur l'UI graphique ou un autre terminal, ca ne compte plus. */
+/** On credite uniquement si la fenetre VS Code est au premier plan ET si le
+ *  terminal actif est celui qui fait tourner `claude`. Cela evite qu'une session
+ *  terminal lancee en arriere-plan credite une utilisation de l'UI Claude. */
 function userIsPlausiblyWatching(): boolean {
+  if (!vscode.window.state.focused) return false;
   const active = vscode.window.activeTerminal;
-  return vscode.window.state.focused && !!active && claudeTerminals.has(active);
+  return !!active && (claudeTerminals.has(active) || isLikelyClaudeTerminal(active));
 }
 
 /** La ligne de commande lance-t-elle le CLI `claude` ? */
 function isClaudeCommand(commandLine: string): boolean {
   return /(^|[\s/\\])claude(\s|$)/i.test(commandLine);
+}
+
+function isLikelyClaudeTerminal(terminal: vscode.Terminal): boolean {
+  return /\bclaude\b/i.test(terminal.name);
 }
 
 /** Branche la detection des commandes `claude` via la shell integration, en
@@ -130,6 +135,40 @@ function watchClaudeRuns(ctx: vscode.ExtensionContext): void {
   );
 }
 
+type BakchichTerminalLink = vscode.TerminalLink & { url: string };
+
+function installAdLinkProvider(ctx: vscode.ExtensionContext): void {
+  ctx.subscriptions.push(
+    vscode.window.registerTerminalLinkProvider({
+      provideTerminalLinks(context) {
+        if (!currentAd?.clickUrl) return [];
+        const labels = [
+          currentAd.linkLabel,
+          currentAd.line.split(" ↗ ").at(-1),
+          currentAd.campaignId,
+        ].filter((v): v is string => Boolean(v));
+
+        for (const label of labels) {
+          const startIndex = context.line.indexOf(label);
+          if (startIndex >= 0) {
+            const link = new vscode.TerminalLink(
+              startIndex,
+              label.length,
+              `Ouvrir ${label}`
+            ) as BakchichTerminalLink;
+            link.url = currentAd.clickUrl;
+            return [link];
+          }
+        }
+        return [];
+      },
+      handleTerminalLink(link) {
+        void vscode.env.openExternal(vscode.Uri.parse((link as BakchichTerminalLink).url));
+      },
+    })
+  );
+}
+
 function viewThresholdMs(): number {
   const s = vscode.workspace.getConfiguration("bakchich").get<number>("viewThresholdSeconds", 5);
   return Math.max(1, Math.min(30, s)) * 1000;
@@ -142,7 +181,7 @@ function render(): void {
     case "signedOut":
       statusBar.text = "$(zap) Activer Bakchich";
       statusBar.tooltip =
-        "Sois paye pendant que Claude Code tourne. Clique pour te connecter." +
+        "Sois paye pendant que ton outil de code tourne. Clique pour te connecter." +
         (previewText ? `\n\nApercu d'une pub en cours : "${previewText}"` : "");
       break;
     case "connecting":
@@ -154,7 +193,7 @@ function render(): void {
         ? `$(zap) Bakchich : ${fmt(balance.todayCents)} aujourd'hui (${fmt(balance.lifetimeCents)} au total)`
         : "$(zap) Bakchich : actif";
       statusBar.tooltip =
-        "Tu gagnes pendant que Claude Code tourne (50 % des revenus pub).\nClique pour ouvrir le menu." +
+        "Tu gagnes pendant que ton outil de code tourne (50 % des revenus pub).\nClique pour ouvrir le menu." +
         (balance ? `\n\nGains aujourd'hui : ${fmt(balance.todayCents)}\nGains au total : ${fmt(balance.lifetimeCents)}` : "") +
         (currentAd ? `\n\nPub en cours : "${currentAd.line.split(" ↗ ")[0]}"` : "");
       break;
@@ -167,8 +206,8 @@ function render(): void {
       statusBar.tooltip = "Serveur injoignable pour le moment. On reessaie automatiquement.";
       break;
     case "incompatible":
-      statusBar.text = "$(warning) Bakchich (Claude Code introuvable)";
-      statusBar.tooltip = "Claude Code n'est pas detecte (~/.claude introuvable). Installe/lance Claude Code, puis relance VS Code.";
+      statusBar.text = "$(warning) Bakchich (outil introuvable)";
+      statusBar.tooltip = "Le dossier local attendu (~/.claude) est introuvable. Lance ton outil de code, puis relance VS Code.";
       break;
     case "settingsError":
       statusBar.text = "$(warning) Bakchich (settings.json illisible)";
@@ -366,7 +405,7 @@ function doRestore(): void {
   currentAd = null;
   const ok = restore();
   vscode.window.showInformationMessage(
-    ok ? "Bakchich : Claude Code restaure a son etat d'origine." : "Bakchich : rien a restaurer."
+    ok ? "Bakchich : spinner restaure a son etat d'origine." : "Bakchich : rien a restaurer."
   );
 }
 
@@ -381,7 +420,7 @@ async function showMenu(): Promise<void> {
     ? [
         { id: "dashboard", label: "$(graph) Mon tableau de bord", description: "Solde et virements sur bakchich.dev" },
         { id: "toggle", label: paused ? "$(play) Reprendre" : "$(debug-pause) Mettre en pause", description: paused ? "Reprendre les gains" : "Suspendre temporairement" },
-        { id: "restore", label: "$(discard) Restaurer Claude Code", description: "Rendre le spinner d'origine" },
+        { id: "restore", label: "$(discard) Restaurer le spinner", description: "Rendre le spinner d'origine" },
         { id: "diagnose", label: "$(pulse) Diagnostic", description: "Verifier l'etat de la connexion" },
         { id: "signout", label: "$(sign-out) Se deconnecter", description: "Arreter et restaurer" },
       ]
@@ -410,12 +449,12 @@ async function diagnose(): Promise<void> {
   out.appendLine(`Version       : ${ctxRef.extension.packageJSON.version}`);
   out.appendLine(`API           : ${apiUrl()}`);
   out.appendLine(`Connecte      : ${token ? "oui" : "non"}`);
-  out.appendLine(`Claude Code   : ${claudeCodeDetected() ? "detecte" : "INTROUVABLE (~/.claude absent)"}`);
+  out.appendLine(`Outil local   : ${claudeCodeDetected() ? "detecte" : "INTROUVABLE (~/.claude absent)"}`);
   out.appendLine(`settings.json : ${_internals.settingsPath()}`);
   out.appendLine(`Backup actif  : ${_internals.backupPath()}`);
   out.appendLine(`Mode          : ${mode}`);
   out.appendLine(`Claude actif  : ${claudeRunCount() > 0 ? `oui (${claudeRunCount()} session(s))` : "non"}`);
-  out.appendLine(`Terminal regarde : ${userIsPlausiblyWatching() ? "oui (credite)" : "non (pas de gain)"}`);
+  out.appendLine(`Fenetre regardee : ${userIsPlausiblyWatching() ? "oui (credite)" : "non (pas de gain)"}`);
   out.appendLine(`Dernier poll  : ${lastDiag}`);
   out.appendLine(`Device ID     : ${ctxRef.globalState.get<string>(DEVICE_KEY) ?? "n/d"}`);
   out.appendLine(`Pub en cours  : ${currentAd ? currentAd.campaignId : "aucune"}`);
@@ -446,6 +485,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
   // Detection des sessions `claude` en terminal : le credit n'a lieu QUE pendant.
   watchClaudeRuns(ctx);
+  installAdLinkProvider(ctx);
 
   ctx.subscriptions.push(
     vscode.commands.registerCommand("bakchich.signIn", () => void doSignIn()),
@@ -470,7 +510,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
       await ctx.globalState.update("bakchich.firstRunNotifShown", true);
       void vscode.window
         .showInformationMessage(
-          "Bakchich est installe. Active-le pour que le spinner de Claude Code affiche une ligne pub pendant qu'il tourne, et touche 50 % des revenus. Rien ne s'injecte tant que tu n'es pas connecte.",
+          "Bakchich est installe. Active-le pour que le spinner affiche une ligne pub pendant qu'il tourne, et touche 50 % des revenus. Rien ne s'injecte tant que tu n'es pas connecte.",
           "Activer mes gains"
         )
         .then((choice) => {

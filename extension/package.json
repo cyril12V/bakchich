@@ -1,8 +1,8 @@
 {
   "name": "bakchich",
   "displayName": "Bakchich, sois payé pendant que ça tourne",
-  "description": "Une ligne sponsorisée dans le spinner de Claude Code pendant qu'il réfléchit. Tu touches 50 % des revenus pub. Opt-in, transparent, réversible en un clic.",
-  "version": "0.3.6",
+  "description": "Une ligne sponsorisée dans le spinner de ton outil de code. Tu touches 50 % des revenus pub. Opt-in, transparent, réversible en un clic.",
+  "version": "0.3.8",
   "publisher": "bakchich",
   "license": "SEE LICENSE IN LICENSE",
   "icon": "media/icon.png",
@@ -20,7 +20,7 @@
       { "command": "bakchich.signOut", "title": "Bakchich : Se déconnecter" },
       { "command": "bakchich.menu", "title": "Bakchich : Menu" },
       { "command": "bakchich.toggle", "title": "Bakchich : Activer / Désactiver" },
-      { "command": "bakchich.restore", "title": "Bakchich : Restaurer Claude Code" },
+      { "command": "bakchich.restore", "title": "Bakchich : Restaurer le spinner" },
       { "command": "bakchich.diagnose", "title": "Bakchich : Diagnostic" },
       { "command": "bakchich.openDashboard", "title": "Bakchich : Mon tableau de bord" }
     ],

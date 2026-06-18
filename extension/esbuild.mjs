@@ -9,7 +9,7 @@ const ctx = await esbuild.context({
   external: ["vscode"],
   platform: "node",
   format: "cjs",
-  sourcemap: true,
+  sourcemap: watch,
   minify: !watch,
 });
 

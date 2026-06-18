@@ -270,10 +270,10 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail, editCam
         />
       )}
 
-      {/* Texte publicitaire avec compteur */}
+      {/* Phrase d'accroche avec compteur */}
       <div>
         <label htmlFor="campaign-text" style={labelStyle}>
-          Ligne de publicité <span style={{ color: "var(--color-gray-400)", fontWeight: 400 }}>(3-60 car.)</span>
+          Phrase d'accroche <span style={{ color: "var(--color-gray-400)", fontWeight: 400 }}>(3-60 car.)</span>
         </label>
         <div style={{ position: "relative" }}>
           <input
@@ -282,7 +282,7 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail, editCam
             required
             minLength={3}
             maxLength={60}
-            placeholder="Essayez Acme Cloud, 30 jours offerts"
+            placeholder="Votre ppsps en moins de 5 min"
             value={form.text}
             onChange={(e) => set("text", e.target.value)}
             aria-describedby="campaign-text-count"
@@ -311,6 +311,10 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail, editCam
             {form.text.length}/60
           </span>
         </div>
+        <p style={{ margin: "0.35rem 0 0", fontSize: "0.8125rem", color: "var(--color-gray-500)" }}>
+          Dans le spinner, l'icône n'apparait pas : la pub affichera{" "}
+          <strong>{(form.brandName || "MONPPSPS").toUpperCase()} : {form.text || "votre phrase d'accroche"} + lien cliquable</strong>.
+        </p>
         {errors.text && <p role="alert" style={errorStyle}>{errors.text}</p>}
       </div>
 
@@ -333,7 +337,7 @@ export function CampaignForm({ auctionData, successSuffix, defaultEmail, editCam
           id="campaign-brand"
           type="text"
           required
-          placeholder="Acme Cloud"
+          placeholder="monppsps"
           maxLength={40}
           value={form.brandName}
           onChange={(e) => set("brandName", e.target.value)}

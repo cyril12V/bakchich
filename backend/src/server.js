@@ -137,25 +137,19 @@ function killswitchOn() {
   return db.prepare(`SELECT value FROM config WHERE key='killswitch'`).get().value === "1";
 }
 
-/** Hyperlien terminal OSC 8 : affiche `label` cliquable, l'URL reste masquée.
- *  Les terminaux sans support OSC 8 ignorent la séquence et montrent juste le
- *  label (dégradation propre : jamais de caractères parasites, juste non cliquable). */
-function osc8(url, label) {
-  const ESC = "\u001b";
-  const ST = ESC + "\\"; // String Terminator (ESC \)
-  return `${ESC}]8;;${url}${ST}${label}${ESC}]8;;${ST}`;
+function campaignClickUrl(campaign, userId) {
+  const u = userId ? `?u=${encodeURIComponent(userId)}` : "";
+  return `${BASE_URL}/c/${campaign.id}${u}`;
 }
 
-/** La ligne affichée dans le spinner : texte + nom de marque CLIQUABLE.
- *  Le lien de clic tracké est masqué derrière le mot (bien plus lisible que l'URL
- *  brute). Attribution du clic (Option A du cahier des charges) : on injecte
- *  ?u=<userId> pour créditer le dev qui a diffusé. La falsification est bornée par
- *  l'anti-fraude (plafond clics/jour/campagne) + la review manuelle avant payout. */
+function campaignLinkLabel(campaign) {
+  return campaign.brand_name || campaign.id;
+}
+
+/** Ligne spinner volontairement en URL brute : les terminaux detectent ce format
+ *  nativement, contrairement aux liens masques OSC 8 via spinnerVerbs. */
 function adLine(campaign, userId) {
-  const u = userId ? `?u=${encodeURIComponent(userId)}` : "";
-  const url = `${BASE_URL}/c/${campaign.id}${u}`;
-  const label = campaign.brand_name || campaign.id;
-  return `${campaign.text} ↗ ${osc8(url, label)}`;
+  return `${campaignLinkLabel(campaign).toUpperCase()} : ${campaign.text} ${campaignClickUrl(campaign, userId)}`;
 }
 
 /** URL de campagne sûre : HTTPS public uniquement (anti-SSRF/IP privées/phishing interne). */
@@ -211,7 +205,14 @@ app.get("/api/state", (req, res) => {
   const winner = currentWinner();
   res.json({
     killswitch: false,
-    ad: winner ? { campaignId: winner.id, line: adLine(winner, user.id) } : null,
+    ad: winner
+      ? {
+          campaignId: winner.id,
+          line: adLine(winner, user.id),
+          clickUrl: campaignClickUrl(winner, user.id),
+          linkLabel: campaignLinkLabel(winner),
+        }
+      : null,
   });
 });
 

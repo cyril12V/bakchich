@@ -1,4 +1,9 @@
 # Ne PAS embarquer dans le .vsix (le code reste public sur GitHub)
+!package.json
+!README.md
+!LICENSE
+!dist/**
+!media/**
 src/**
 test/**
 node_modules/**

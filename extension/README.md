@@ -1,107 +1,106 @@
+<p align="center">
+  <img src="media/icon.png" alt="Bakchich logo" width="96" height="96">
+</p>
+
 # Bakchich
 
-**Sois payé pendant que ça tourne.** Touche jusqu'à 50 % des revenus pub.
+Sois payé pendant que tu codes.
 
-[bakchich.dev](https://bakchich.dev) · [Mon tableau de bord](https://bakchich.dev/me) · [Devenir annonceur](https://bakchich.dev/annonceurs)
+Bakchich transforme la petite ligne de chargement des outils de code compatibles en emplacement sponsorisé discret, et reverse jusqu'à 50 % des revenus publicitaires au développeur dont la machine l'a affichée.
 
----
+[Site](https://bakchich.dev) · [Tableau de bord](https://bakchich.dev/me) · [Annonceurs](https://bakchich.dev/annonceurs)
 
-## Comment ça marche
+## L'idée
 
-Quand Claude Code « réfléchit », son spinner affiche un verbe au hasard
-(« Percolating… », « Discombobulating… »). Bakchich remplace ce verbe par une
-**ligne sponsorisée discrète et cliquable**. Des annonceurs enchérissent pour la
-place ; **jusqu'à 50 % des revenus pub** te sont crédités.
+Quand un outil de code IA réfléchit, il affiche souvent un petit mot de chargement. Bakchich transforme cette ligne en mini-emplacement sponsorisé, propre et cliquable.
 
-Ton solde s'affiche dans la barre de statut de VS Code et se met à jour en temps réel :
-`⚡ Bakchich : 0,42 € aujourd'hui (7,11 € au total)`
+```diff
+- * Percolating... (esc to interrupt)
++ * MONPPSPS : votre ppsps en moins de 5min https://api.bakchich.dev/c/demo (esc to interrupt)
+```
+
+Les annonceurs enchérissent dans une régie ouverte. Tu reçois jusqu'à 50 % des revenus, crédités automatiquement à l'impression et au clic.
+
+Ton solde s'affiche directement dans la barre de statut VS Code :
+
+```text
+Bakchich : 0,42 EUR aujourd'hui (7,11 EUR au total)
+```
 
 ## Fonctionnalités
 
-- **Gains passifs** : les impressions s'accumulent pendant que Claude Code travaille. Un clic vaut 50× une impression.
-- **Partage de revenus** : jusqu'à 50 % des revenus pub, crédités par impression et par clic.
-- **Totalement réversible** : un clic restaure Claude Code à son état d'origine, à l'octet près.
-- **Zéro interférence** : ne lit jamais ton code, tes prompts ni tes complétions.
-- **Opt-in strict** : rien ne s'injecte tant que tu n'es pas connecté.
+- Gains passifs quand une ligne compatible reste visible assez longtemps.
+- Jusqu'à 50 % de partage de revenus sur les impressions et les clics.
+- Un clic vaut 50 fois une impression.
+- Opt-in strict : rien n'est injecté tant que tu n'es pas connecté.
+- Réversible : pause, déconnexion ou restauration depuis le menu de la barre de statut.
+- Confidentialité : aucun code, prompt, fichier, sortie terminale ou contenu de conversation n'est lu.
 
-## Démarrage
+## Installation
 
-1. Installe l'extension depuis le Marketplace VS Code (cherche **Bakchich**).
-2. Clique sur **Activer Bakchich** dans la barre de statut (ou palette → « Bakchich : Se connecter »).
+1. Installe **Bakchich** depuis le VS Code Marketplace.
+2. Clique sur **Bakchich : Se connecter** dans la barre de statut.
 3. Authentifie-toi avec Google.
-4. Utilise Claude Code normalement. Tes gains démarrent automatiquement.
+4. Continue à coder. Les gains démarrent automatiquement quand une ligne compatible reste visible assez longtemps.
 
 ## Barre de statut
 
 | État | Signification |
 | --- | --- |
-| `⚡ Activer Bakchich` | Pas encore connecté. Clique pour t'authentifier. |
-| `⚡ Bakchich : 0,42 € aujourd'hui (7,11 € au total)` | Connecté, en train de gagner. |
-| `⏸ Bakchich (pause)` | Tu as mis en pause. Clique pour reprendre. |
-| `⊘ Bakchich (suspendu)` | Diffusion suspendue côté serveur (kill-switch de sécurité). |
-| `☁ Bakchich (hors-ligne)` | Backend temporairement injoignable : on réessaie tout seul. |
-| `⚠ Bakchich (Claude Code introuvable)` | Claude Code n'est pas détecté sur cette machine. |
+| `Bakchich : Se connecter` | Pas encore connecté. Clique pour t'authentifier. |
+| `Bakchich : 0,42 EUR aujourd'hui (7,11 EUR au total)` | Connecté et en train de gagner. |
+| `Bakchich en pause` | Pause temporaire. Clique pour reprendre. |
+| `Bakchich suspendu` | Kill-switch serveur actif. |
+| `Bakchich hors-ligne` | Backend temporairement injoignable. L'extension réessaie automatiquement. |
+| `Bakchich incompatible` | Les réglages locaux nécessaires n'ont pas été détectés. |
 
-Clique sur la barre de statut pour ouvrir le **menu Bakchich** (connexion/déconnexion,
-pause, restaurer Claude Code, diagnostic, tableau de bord).
+Clique sur la barre de statut pour ouvrir le menu Bakchich : connexion, déconnexion, pause, restauration, diagnostic ou tableau de bord.
 
 ## Confidentialité
 
-Bakchich ne communique qu'avec le backend Bakchich (`api.bakchich.dev`). Il envoie :
+Bakchich communique uniquement avec le backend Bakchich sur `api.bakchich.dev`.
 
-- Un **identifiant d'appareil anonyme** (non lié à ton identité tant que tu n'es pas connecté).
-- Des **événements d'impression** (ID de pub, temps visible, clic).
-- Ton **email Google uniquement après connexion**, pour créditer tes gains.
+L'extension envoie :
 
-Bakchich **ne lit jamais** ton code, tes prompts, tes complétions, ni aucun contenu de conversation.
+- Un identifiant d'appareil anonyme.
+- Les événements d'impression et de clic.
+- Ton email Google après connexion, utilisé pour créditer ton compte.
 
-L'injection se fait en éditant **uniquement** le champ `spinnerVerbs` de
-`~/.claude/settings.json` (un verbe spinner sponsorisé), à partir d'une sauvegarde
-de l'original. **Tout est réversible** : choisis « Restaurer Claude Code » dans le
-menu à tout moment, et l'original est remis à l'identique.
+Elle ne lit pas ton code, tes prompts, tes fichiers, tes sorties terminal, ni le contenu de tes conversations.
 
 ## Commandes
-
-Palette de commandes (Ctrl+Shift+P / Cmd+Shift+P) :
 
 | Commande | Description |
 | --- | --- |
 | Bakchich : Se connecter | S'authentifier avec Google. |
-| Bakchich : Se déconnecter | Se déconnecter et arrêter les gains. |
+| Bakchich : Se déconnecter | Arrêter les gains et restaurer le spinner d'origine. |
 | Bakchich : Menu | Ouvrir le menu complet. |
-| Bakchich : Activer / Désactiver | Mettre en pause / reprendre. |
-| Bakchich : Restaurer Claude Code | Rendre le spinner d'origine. |
-| Bakchich : Diagnostic | Vérifier l'état de la connexion. |
-| Bakchich : Mon tableau de bord | Ouvrir bakchich.dev/me. |
+| Bakchich : Activer / Désactiver | Mettre en pause ou reprendre. |
+| Bakchich : Restaurer | Restaurer le texte d'origine du spinner. |
+| Bakchich : Diagnostic | Vérifier la connexion et l'état local. |
+| Bakchich : Tableau de bord | Ouvrir bakchich.dev/me. |
 
 ## Réglages
 
 | ID | Description | Défaut |
 | --- | --- | --- |
 | `bakchich.apiUrl` | URL de l'API Bakchich. | `https://api.bakchich.dev` |
-| `bakchich.viewThresholdSeconds` | Temps de visibilité cumulé (s) avant qu'une pub compte comme « vue » et soit créditée. | `5` |
+| `bakchich.viewThresholdSeconds` | Temps visible requis avant de créditer une impression. | `5` |
 
-## Compatibilité
+## Annoncer sur Bakchich
 
-Bakchich agit sur le **spinner-verbe de Claude Code (CLI terminal)** via
-`~/.claude/settings.json`. Si Claude Code n'est pas détecté, l'extension ne fait
-**rien** : elle ne cassera jamais ton éditeur ni ton terminal.
+Utilise un nom de marque et une phrase d'accroche courte. L'icône reste affichée sur le site, mais pas dans le spinner.
 
-## FAQ
+```text
+Nom : MONPPSPS
+Accroche : votre ppsps en moins de 5min
+Spinner : MONPPSPS : votre ppsps en moins de 5min + lien cliquable
+```
 
-**Est-ce que ça affecte Claude Code ?** Non. Le seul changement est le texte du
-spinner. Toutes les fonctionnalités de Claude Code marchent exactement comme avant.
+[Acheter de l'inventaire sur bakchich.dev](https://bakchich.dev/annonceurs)
 
-**Comment je suis payé ?** Tes gains sont suivis sur le backend Bakchich. Va sur
-[bakchich.dev/me](https://bakchich.dev/me) pour voir ton solde et configurer tes
-retraits (Stripe).
+## Licence
 
-**Je peux désactiver ?** Oui. Clique sur la barre de statut → « Mettre en pause »,
-ou « Restaurer Claude Code » pour tout remettre d'origine.
+Propriétaire et source-available, pas open source. Tu peux lire et auditer ce code, mais tu ne peux pas l'utiliser, le copier, le modifier, le distribuer, le commercialiser ou l'exécuter pour un autre service sans autorisation écrite.
 
-**Mon code est-il en sécurité ?** Bakchich n'a aucun accès à ton code, tes prompts
-ou les réponses de l'IA. Il ne modifie que le texte d'affichage du spinner.
-
----
-
-Bakchich n'est pas affilié à Anthropic.
+Voir `LICENSE`.

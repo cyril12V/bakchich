@@ -24,10 +24,9 @@ const FAQ_ANNONCEURS = [
     question: "Quel format pour la publicité ?",
     answer: (
       <p>
-        Une ligne texte de 3 a 60 caractères et une URL HTTPS. Un nom de
-        marque (40 caractères max) et une icône (PNG/JPG/WebP, max 64 Ko) sont
-        obligatoires. La création s'affiche dans le spinner de Claude Code pendant 5
-        secondes.
+        Un nom de marque (40 caractères max), une phrase d'accroche de 3 a 60
+        caractères et une URL HTTPS. L'icône reste utilisée sur le site, mais pas
+        dans le spinner : la pub s'affiche comme "MARQUE : phrase + lien".
       </p>
     ),
   },
