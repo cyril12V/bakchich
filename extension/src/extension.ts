@@ -82,22 +82,20 @@ function claudeRunCount(): number {
   return n;
 }
 
-/** On credite uniquement si la fenetre VS Code est au premier plan ET si le
- *  terminal actif est celui qui fait tourner `claude`. Cela evite qu'une session
- *  terminal lancee en arriere-plan credite une utilisation de l'UI Claude. */
+/** On credite uniquement si la fenetre VS Code est au premier plan ET si une
+ *  commande `claude` tourne REELLEMENT dans le terminal actif (detectee via la
+ *  shell integration). On n'utilise plus le simple nom du terminal : un terminal
+ *  nomme "claude" mais sans claude en cours (curseur au prompt, pas de spinner)
+ *  ne credite donc plus rien. Fenetre reduite / non focalisee => pas de credit. */
 function userIsPlausiblyWatching(): boolean {
   if (!vscode.window.state.focused) return false;
   const active = vscode.window.activeTerminal;
-  return !!active && (claudeTerminals.has(active) || isLikelyClaudeTerminal(active));
+  return !!active && claudeTerminals.has(active);
 }
 
 /** La ligne de commande lance-t-elle le CLI `claude` ? */
 function isClaudeCommand(commandLine: string): boolean {
   return /(^|[\s/\\])claude(\s|$)/i.test(commandLine);
-}
-
-function isLikelyClaudeTerminal(terminal: vscode.Terminal): boolean {
-  return /\bclaude\b/i.test(terminal.name);
 }
 
 /** Branche la detection des commandes `claude` via la shell integration, en
@@ -170,8 +168,8 @@ function installAdLinkProvider(ctx: vscode.ExtensionContext): void {
 }
 
 function viewThresholdMs(): number {
-  const s = vscode.workspace.getConfiguration("bakchich").get<number>("viewThresholdSeconds", 5);
-  return Math.max(1, Math.min(30, s)) * 1000;
+  const s = vscode.workspace.getConfiguration("bakchich").get<number>("viewThresholdSeconds", 15);
+  return Math.max(1, Math.min(60, s)) * 1000;
 }
 
 /* ------------------------------- Rendu UI --------------------------------- */
