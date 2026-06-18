@@ -1,11 +1,10 @@
 /**
  * Anti-fraude v1 : règles simples mais qui éliminent 95 % de la triche :
  *
- * 1. INTERVALLE : minimum 4,5 s entre deux impressions d'un même utilisateur
- *    (une impression = 5 s de visibilité, donc plus vite = physiquement impossible).
- * 2. PLAFOND JOUR : max 2 000 impressions/jour/utilisateur
- *    (≈ 2 h 45 de spinner visible : au-delà, c'est un bot).
- * 3. PLAFOND CLIC : max 5 clics/jour/utilisateur sur une même campagne.
+ * 1. INTERVALLE : minimum ~15 s entre deux impressions d'un même utilisateur
+ *    (une impression = 15 s de visibilité, donc plus vite = physiquement impossible).
+ * 2. PAS de plafond journalier d'impressions (cadence + review des payouts suffisent).
+ * 3. PLAFOND CLIC : max 10 clics/jour/utilisateur sur une même campagne.
  * 4. IDEMPOTENCE : event_id en clé primaire → un événement rejoué = ignoré.
  * 5. BAN : compte gelé = plus aucun crédit (review manuelle avant payout).
  *
@@ -16,8 +15,9 @@
 import { db, now } from "./db.js";
 
 // Cadence physique minimale entre deux impressions (anti-bot, PAS un plafond de
-// gains) : une impression = 5 s de visibilite, donc plus vite = impossible.
-const MIN_TICK_INTERVAL_MS = 4500;
+// gains) : une impression = 15 s de visibilite, donc plus vite = impossible.
+// Tolerance de 500 ms pour absorber la latence reseau / le jitter du tick client.
+const MIN_TICK_INTERVAL_MS = 14500;
 // AUCUN plafond de gains : ni quota journalier d'impressions, ni quota de clics.
 // La protection anti-fraude repose sur la cadence ci-dessus + la review manuelle
 // des payouts (1er retrait et gros montants) + le bannissement de compte.
