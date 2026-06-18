@@ -71,6 +71,7 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), (req, re
   try {
     event = constructWebhookEvent(req.body, req.headers["stripe-signature"]);
   } catch (err) {
+    logSecurityEvent(req, "stripe_signature_invalid", { message: String(err?.message ?? "") });
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
 
@@ -126,6 +127,7 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), (req, re
       }
     })();
   } catch (err) {
+    logSecurityEvent(req, "stripe_webhook_rejected", { message: String(err?.message ?? "") });
     return res.status(400).json({ error: "webhook_validation_failed" });
   }
   res.json({ received: true });
@@ -488,7 +490,7 @@ app.get("/auth/google/callback", async (req, res) => {
         .run(user.id, user.email, user.name, now());
     }
     const sessionToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = now() + 30 * 24 * 60 * 60 * 1000; // 30 jours (limite la fenêtre d'un token volé)
+    const expiresAt = now() + 14 * 24 * 60 * 60 * 1000; // 14 jours (limite la fenêtre d'un token volé)
     db.prepare(`INSERT INTO sessions (token,user_id,created_at,expires_at) VALUES (?,?,?,?)`)
       .run(sessionToken, user.id, now(), expiresAt);
 
@@ -753,6 +755,7 @@ function requireAdmin(req, res, next) {
   if (ADMIN_IP_ALLOWLIST.size > 0) {
     const ip = String(req.ip ?? "").replace(/^::ffff:/, "");
     if (!ADMIN_IP_ALLOWLIST.has(ip)) {
+      logSecurityEvent(req, "admin_ip_denied", { path: req.path });
       return res.status(403).json({ error: "forbidden" });
     }
   }
@@ -760,6 +763,7 @@ function requireAdmin(req, res, next) {
   const a = Buffer.from(provided);
   const b = Buffer.from(ADMIN_SECRET);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    logSecurityEvent(req, "admin_secret_denied", { path: req.path });
     return res.status(403).json({ error: "forbidden" });
   }
   next();
@@ -768,6 +772,17 @@ function requireAdmin(req, res, next) {
 function auditAdmin(req, action, detail = {}) {
   db.prepare(`INSERT INTO admin_audit (id, action, ip, detail, created_at) VALUES (?, ?, ?, ?, ?)`)
     .run(crypto.randomUUID(), action, req.ip ?? null, JSON.stringify(detail), now());
+}
+
+// Journalise un évènement de sécurité (auth admin refusée, webhook rejeté, …) dans la
+// même table d'audit, préfixé "security:". Ne doit JAMAIS faire échouer la requête.
+function logSecurityEvent(req, event, detail = {}) {
+  try {
+    db.prepare(`INSERT INTO admin_audit (id, action, ip, detail, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .run(crypto.randomUUID(), `security:${event}`, req?.ip ?? null, JSON.stringify(detail), now());
+  } catch {
+    // logging best-effort : on ignore toute erreur d'écriture
+  }
 }
 
 app.post("/admin/killswitch", requireAdmin, (req, res) => {
