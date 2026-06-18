@@ -195,19 +195,43 @@ function killswitchOn() {
   return db.prepare(`SELECT value FROM config WHERE key='killswitch'`).get().value === "1";
 }
 
-function campaignClickUrl(campaign, userId) {
-  const u = userId ? `?u=${encodeURIComponent(userId)}` : "";
-  return `${BASE_URL}/c/${campaign.id}${u}`;
+// Alphabet sans caracteres ambigus (0/O, 1/l/I) pour un code court lisible.
+const CLICK_CODE_ALPHABET = "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
+
+/** Genere un code de clic court (6 car.) unique parmi les utilisateurs. */
+function genClickCode() {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const bytes = crypto.randomBytes(6);
+    let code = "";
+    for (let i = 0; i < 6; i++) code += CLICK_CODE_ALPHABET[bytes[i] % CLICK_CODE_ALPHABET.length];
+    if (!db.prepare(`SELECT 1 FROM users WHERE click_code=?`).get(code)) return code;
+  }
+  return crypto.randomBytes(6).toString("hex"); // repli ultra-improbable
+}
+
+/** Retourne le code de clic de l'utilisateur, en le creant/persistant si absent. */
+function ensureClickCode(user) {
+  if (user.click_code) return user.click_code;
+  const code = genClickCode();
+  db.prepare(`UPDATE users SET click_code=? WHERE id=?`).run(code, user.id);
+  user.click_code = code;
+  return code;
+}
+
+// URL de clic courte et brandee sur le domaine apex : bakchich.dev/go/<id>/<code>.
+// Repli sans code (ex. previsualisation deconnectee) : /go/<id>.
+function campaignClickUrl(campaign, code) {
+  return code ? `${SITE_URL}/go/${campaign.id}/${code}` : `${SITE_URL}/go/${campaign.id}`;
 }
 
 function campaignLinkLabel(campaign) {
   return campaign.brand_name || campaign.id;
 }
 
-/** Ligne spinner volontairement en URL brute : les terminaux detectent ce format
- *  nativement, contrairement aux liens masques OSC 8 via spinnerVerbs. */
-function adLine(campaign, userId) {
-  return `${campaignLinkLabel(campaign).toUpperCase()} : ${campaign.text} ${campaignClickUrl(campaign, userId)}`;
+/** Ligne spinner volontairement en URL brute (https://) : les terminaux la rendent
+ *  cliquable nativement, contrairement aux liens masques OSC 8 via spinnerVerbs. */
+function adLine(campaign, code) {
+  return `${campaignLinkLabel(campaign).toUpperCase()} ↗ ${campaign.text} · ${campaignClickUrl(campaign, code)}`;
 }
 
 /** URL de campagne sûre : HTTPS public uniquement (anti-SSRF/IP privées/phishing interne). */
@@ -261,13 +285,14 @@ app.get("/api/state", (req, res) => {
   if (killswitchOn()) return res.json({ killswitch: true, ad: null });
 
   const winner = currentWinner();
+  const code = winner ? ensureClickCode(user) : null;
   res.json({
     killswitch: false,
     ad: winner
       ? {
           campaignId: winner.id,
-          line: adLine(winner, user.id),
-          clickUrl: campaignClickUrl(winner, user.id),
+          line: adLine(winner, code),
+          clickUrl: campaignClickUrl(winner, code),
           linkLabel: campaignLinkLabel(winner),
         }
       : null,
@@ -366,30 +391,43 @@ app.get("/api/me/history", (req, res) => {
 // Fenêtre pendant laquelle un dev ayant affiché la pub peut être crédité d'un clic.
 const CLICK_ATTRIBUTION_WINDOW_MS = 10 * 60 * 1000;
 
+// ANTI-FRAUDE : l'identifiant du dev (code ou ?u=) est public et forgeable. On NE
+// crédite un clic que si le dev revendiqué a RÉELLEMENT affiché cette campagne
+// récemment (preuve = une impression dans le ledger sur la fenêtre ci-dessus).
+// Sans ça, n'importe qui pourrait forger un lien avec un id d'utilisateur arbitraire.
+function maybeCreditClick(campaign, userId) {
+  if (!userId || killswitchOn()) return;
+  const user = db.prepare(`SELECT * FROM users WHERE id=? AND banned=0`).get(userId);
+  if (!user) return;
+  const sawIt = db
+    .prepare(
+      `SELECT 1 FROM events
+       WHERE user_id=? AND campaign_id=? AND type='impression' AND created_at > ?
+       LIMIT 1`
+    )
+    .get(userId, campaign.id, now() - CLICK_ATTRIBUTION_WINDOW_MS);
+  const hasBudget = campaign.status === "active" &&
+    campaign.impressions + campaign.clicks * CLICK_MULTIPLIER < campaign.blocks * IMPRESSIONS_PER_BLOCK;
+  if (sawIt && hasBudget && !checkClick(user.id, campaign.id)) {
+    recordClick(crypto.randomUUID(), user.id, campaign);
+  }
+}
+
+// Lien court actuel : /go/:campaignId/:code (le code résout le dev à créditer).
+app.get("/go/:campaignId/:code", clickLimiter, (req, res) => {
+  const campaign = db.prepare(`SELECT * FROM campaigns WHERE id=?`).get(req.params.campaignId);
+  if (!campaign) return res.status(404).send("Campagne introuvable");
+  const dev = db.prepare(`SELECT id FROM users WHERE click_code=?`).get(req.params.code);
+  maybeCreditClick(campaign, dev?.id ?? null);
+  res.redirect(302, campaign.url);
+});
+
+// Lien historique : /c/:campaignId?u=<userId> (rétro-compatibilité).
 app.get("/c/:campaignId", clickLimiter, (req, res) => {
   const campaign = db.prepare(`SELECT * FROM campaigns WHERE id=?`).get(req.params.campaignId);
   if (!campaign) return res.status(404).send("Campagne introuvable");
-
-  // ANTI-FRAUDE : le `?u=` est public et forgeable. On NE crédite un clic que si
-  // l'utilisateur revendiqué a RÉELLEMENT affiché cette campagne récemment
-  // (preuve = une impression dans le ledger sur la fenêtre ci-dessus). Sans ça,
-  // n'importe qui pourrait forger /c/<id>?u=<n'importe quel userId>.
   const userId = typeof req.query.u === "string" ? req.query.u : null;
-  if (userId && !killswitchOn()) {
-    const user = db.prepare(`SELECT * FROM users WHERE id=? AND banned=0`).get(userId);
-    const sawIt = user && db
-      .prepare(
-        `SELECT 1 FROM events
-         WHERE user_id=? AND campaign_id=? AND type='impression' AND created_at > ?
-         LIMIT 1`
-      )
-      .get(userId, campaign.id, now() - CLICK_ATTRIBUTION_WINDOW_MS);
-    const hasBudget = campaign.status === "active" &&
-      campaign.impressions + campaign.clicks * CLICK_MULTIPLIER < campaign.blocks * IMPRESSIONS_PER_BLOCK;
-    if (user && sawIt && hasBudget && !checkClick(user.id, campaign.id)) {
-      recordClick(crypto.randomUUID(), user.id, campaign);
-    }
-  }
+  maybeCreditClick(campaign, userId);
   res.redirect(302, campaign.url);
 });
 
@@ -485,9 +523,9 @@ app.get("/auth/google/callback", async (req, res) => {
     // Upsert user + session
     let user = db.prepare(`SELECT * FROM users WHERE email=?`).get(email);
     if (!user) {
-      user = { id: crypto.randomUUID(), email, name };
-      db.prepare(`INSERT INTO users (id,email,name,created_at) VALUES (?,?,?,?)`)
-        .run(user.id, user.email, user.name, now());
+      user = { id: crypto.randomUUID(), email, name, click_code: genClickCode() };
+      db.prepare(`INSERT INTO users (id,email,name,created_at,click_code) VALUES (?,?,?,?,?)`)
+        .run(user.id, user.email, user.name, now(), user.click_code);
     }
     const sessionToken = crypto.randomBytes(32).toString("hex");
     const expiresAt = now() + 14 * 24 * 60 * 60 * 1000; // 14 jours (limite la fenêtre d'un token volé)
